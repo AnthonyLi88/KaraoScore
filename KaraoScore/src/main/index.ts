@@ -1,7 +1,10 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, protocol, net } from 'electron'
 import { join } from 'path'
+import { pathToFileURL } from 'url'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import ytDlp from 'yt-dlp-exec'
+import ffmpegStatic from 'ffmpeg-static'
 
 function createWindow(): void {
   // Create the browser window.
@@ -51,6 +54,39 @@ app.whenReady().then(() => {
 
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
+
+  // Audio Downloader IPC
+  ipcMain.handle('download-audio', async (_, url: string) => {
+    try {
+      // Use a fixed filename for the downloaded track
+      const outputPath = join(app.getPath('userData'), 'downloaded_track.mp3');
+      console.log(`Downloading audio from ${url}...`);
+      
+      await ytDlp(url, {
+        extractAudio: true,
+        audioFormat: 'mp3',
+        output: outputPath,
+        ffmpegLocation: ffmpegStatic || undefined,
+        noCheckCertificates: true,
+        noWarnings: true,
+        preferFreeFormats: true,
+        addHeader: ['referer:youtube.com', 'user-agent:Mozilla/5.0'],
+        forceOverwrites: true
+      });
+
+      console.log('Download complete! Reading file to base64...');
+      
+      const fs = require('fs');
+      const buffer = await fs.promises.readFile(outputPath);
+      const base64Audio = buffer.toString('base64');
+      const dataUri = `data:audio/mp3;base64,${base64Audio}`;
+
+      return { success: true, audioUrl: dataUri };
+    } catch (error: any) {
+      console.error('Download error:', error);
+      return { success: false, error: error.message };
+    }
+  })
 
   createWindow()
 

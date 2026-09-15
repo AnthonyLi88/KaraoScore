@@ -1,26 +1,45 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import Versions from './components/Versions.vue'
 
-const ipcHandle = (): void => window.electron.ipcRenderer.send('ping')
+const url = ref('')
+const status = ref('')
+const audioUrl = ref('')
+
+const downloadAudio = async (): Promise<void> => {
+  if (!url.value) return
+  status.value = 'Downloading...'
+  audioUrl.value = '' // Reset player
+  
+  const result = await window.api.downloadAudio(url.value)
+  if (result.success && result.audioUrl) {
+    status.value = 'Success!'
+    audioUrl.value = result.audioUrl
+  } else {
+    status.value = `Error: ${result.error}`
+  }
+}
 </script>
 
 <template>
   <img alt="logo" class="logo" src="./assets/electron.svg" />
-  <div class="creator">Powered by electron-vite</div>
+  <div class="creator">KaraoScore Backend Test</div>
   <div class="text">
-    Build an Electron app with
-    <span class="vue">Vue</span>
-    and
-    <span class="ts">TypeScript</span>
+    Test your <span class="vue">yt-dlp</span> audio extraction
   </div>
-  <p class="tip">Please try pressing <code>F12</code> to open the devTool</p>
-  <div class="actions">
-    <div class="action">
-      <a href="https://electron-vite.org/" target="_blank" rel="noreferrer">Documentation</a>
-    </div>
-    <div class="action">
-      <a target="_blank" rel="noreferrer" @click="ipcHandle">Send IPC</a>
-    </div>
+  
+  <div style="margin-top: 2rem; display: flex; flex-direction: column; align-items: center; gap: 10px;">
+    <input 
+      v-model="url" 
+      placeholder="Enter YouTube URL" 
+      style="padding: 10px; width: 300px; border-radius: 5px; border: 1px solid #ccc; background: #2f3241; color: white;" 
+    />
+    <button @click="downloadAudio" style="padding: 10px 20px; cursor: pointer;">Download Audio</button>
+    <p v-if="status" style="margin-top: 10px;">{{ status }}</p>
+    
+    <!-- Audio Player -->
+    <audio v-if="audioUrl" :src="audioUrl" controls style="margin-top: 15px; width: 400px;"></audio>
   </div>
+  
   <Versions />
 </template>
