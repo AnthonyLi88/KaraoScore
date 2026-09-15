@@ -1,22 +1,42 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import Versions from './components/Versions.vue'
 
-const url = ref('')
-const status = ref('')
-const audioUrl = ref('')
+const urlNormal = ref('')
+const statusNormal = ref('')
+const audioUrlNormal = ref('')
 
-const downloadAudio = async (): Promise<void> => {
-  if (!url.value) return
-  status.value = 'Downloading...'
-  audioUrl.value = '' // Reset player
+const urlInstrumental = ref('')
+const statusInstrumental = ref('')
+const audioUrlInstrumental = ref('')
+
+const downloadAudio = async (type: 'normal' | 'instrumental'): Promise<void> => {
+  const url = type === 'normal' ? urlNormal.value : urlInstrumental.value;
+  if (!url) return;
   
-  const result = await window.api.downloadAudio(url.value)
-  if (result.success && result.audioUrl) {
-    status.value = 'Success!'
-    audioUrl.value = result.audioUrl
+  if (type === 'normal') {
+    statusNormal.value = 'Downloading...'
+    audioUrlNormal.value = ''
   } else {
-    status.value = `Error: ${result.error}`
+    statusInstrumental.value = 'Downloading...'
+    audioUrlInstrumental.value = ''
+  }
+  
+  const result = await window.api.downloadAudio(url, type)
+  
+  if (type === 'normal') {
+    if (result.success && result.audioUrl) {
+      statusNormal.value = 'Success!'
+      audioUrlNormal.value = result.audioUrl
+    } else {
+      statusNormal.value = `Error: ${result.error}`
+    }
+  } else {
+    if (result.success && result.audioUrl) {
+      statusInstrumental.value = 'Success!'
+      audioUrlInstrumental.value = result.audioUrl
+    } else {
+      statusInstrumental.value = `Error: ${result.error}`
+    }
   }
 }
 </script>
@@ -28,18 +48,31 @@ const downloadAudio = async (): Promise<void> => {
     Test your <span class="vue">yt-dlp</span> audio extraction
   </div>
   
-  <div style="margin-top: 2rem; display: flex; flex-direction: column; align-items: center; gap: 10px;">
-    <input 
-      v-model="url" 
-      placeholder="Enter YouTube URL" 
-      style="padding: 10px; width: 300px; border-radius: 5px; border: 1px solid #ccc; background: #2f3241; color: white;" 
-    />
-    <button @click="downloadAudio" style="padding: 10px 20px; cursor: pointer;">Download Audio</button>
-    <p v-if="status" style="margin-top: 10px;">{{ status }}</p>
-    
-    <!-- Audio Player -->
-    <audio v-if="audioUrl" :src="audioUrl" controls style="margin-top: 15px; width: 400px;"></audio>
+  <div style="display: flex; justify-content: center; gap: 60px; margin-top: 2rem; width: 100%;">
+    <!-- Normal Track -->
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+      <h3>Normal Track</h3>
+      <input 
+        v-model="urlNormal" 
+        placeholder="Enter YouTube URL" 
+        style="padding: 10px; width: 300px; border-radius: 5px; border: 1px solid #ccc; background: #2f3241; color: white;" 
+      />
+      <button @click="downloadAudio('normal')" style="padding: 10px 20px; cursor: pointer;">Download Audio</button>
+      <p v-if="statusNormal" style="margin-top: 10px;">{{ statusNormal }}</p>
+      <audio v-if="audioUrlNormal" :src="audioUrlNormal" controls style="margin-top: 15px; width: 300px;"></audio>
+    </div>
+
+    <!-- Instrumental Track -->
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+      <h3>Instrumental Track</h3>
+      <input 
+        v-model="urlInstrumental" 
+        placeholder="Enter YouTube URL" 
+        style="padding: 10px; width: 300px; border-radius: 5px; border: 1px solid #ccc; background: #2f3241; color: white;" 
+      />
+      <button @click="downloadAudio('instrumental')" style="padding: 10px 20px; cursor: pointer;">Download Audio</button>
+      <p v-if="statusInstrumental" style="margin-top: 10px;">{{ statusInstrumental }}</p>
+      <audio v-if="audioUrlInstrumental" :src="audioUrlInstrumental" controls style="margin-top: 15px; width: 300px;"></audio>
+    </div>
   </div>
-  
-  <Versions />
 </template>

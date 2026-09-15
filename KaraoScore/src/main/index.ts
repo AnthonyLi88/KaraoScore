@@ -56,11 +56,11 @@ app.whenReady().then(() => {
   ipcMain.on('ping', () => console.log('pong'))
 
   // Audio Downloader IPC
-  ipcMain.handle('download-audio', async (_, url: string) => {
+  ipcMain.handle('download-audio', async (_, url: string, type: string = 'track') => {
     try {
-      // Use a fixed filename for the downloaded track
-      const outputPath = join(app.getPath('userData'), 'downloaded_track.mp3');
-      console.log(`Downloading audio from ${url}...`);
+      // Use a fixed filename for the downloaded track based on its type
+      const outputPath = join(app.getPath('userData'), `downloaded_${type}.mp3`);
+      console.log(`Downloading ${type} audio from ${url}...`);
       
       await ytDlp(url, {
         extractAudio: true,

@@ -3,7 +3,7 @@ import { electronAPI } from '@electron-toolkit/preload'
 
 // Custom APIs for renderer
 const api = {
-  downloadAudio: (url: string) => ipcRenderer.invoke('download-audio', url)
+  downloadAudio: (url: string, type: string) => ipcRenderer.invoke('download-audio', url, type)
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to
