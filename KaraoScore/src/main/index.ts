@@ -56,11 +56,11 @@ app.whenReady().then(() => {
   ipcMain.on('ping', () => console.log('pong'))
 
   // Audio Downloader IPC
-  ipcMain.handle('download-audio', async (_, url: string) => {
+  ipcMain.handle('download-audio', async (_, url: string, type: string = 'track') => {
     try {
-      // Use a fixed filename for the downloaded track
-      const outputPath = join(app.getPath('userData'), 'downloaded_track.mp3');
-      console.log(`Downloading audio from ${url}...`);
+      // Use a fixed filename for the downloaded track based on its type
+      const outputPath = join(app.getPath('userData'), `downloaded_${type}.mp3`);
+      console.log(`Downloading ${type} audio from ${url}...`);
       
       await ytDlp(url, {
         extractAudio: true,
@@ -71,7 +71,8 @@ app.whenReady().then(() => {
         noWarnings: true,
         preferFreeFormats: true,
         addHeader: ['referer:youtube.com', 'user-agent:Mozilla/5.0'],
-        forceOverwrites: true
+        forceOverwrites: true,
+        postprocessorArgs: 'ffmpeg:-af loudnorm' // Normalize audio volume during extraction
       });
 
       console.log('Download complete! Reading file to base64...');
@@ -84,6 +85,37 @@ app.whenReady().then(() => {
       return { success: true, audioUrl: dataUri };
     } catch (error: any) {
       console.error('Download error:', error);
+      return { success: false, error: error.message };
+    }
+  })
+
+  // Audio Normalizer IPC (for local files)
+  ipcMain.handle('normalize-audio', async (_, inputPath: string, type: string = 'track') => {
+    try {
+      const outputPath = join(app.getPath('userData'), `normalized_${type}.mp3`);
+      console.log(`Normalizing local audio from ${inputPath}...`);
+      
+      const { spawn } = require('child_process');
+      await new Promise<void>((resolve, reject) => {
+        // -y overwrites, -i is input, -af loudnorm applies EBU R128 volume normalization
+        const proc = spawn(ffmpegStatic, ['-y', '-i', inputPath, '-af', 'loudnorm', outputPath]);
+        
+        proc.on('close', (code) => {
+          if (code === 0) resolve();
+          else reject(new Error(`ffmpeg exited with code ${code}`));
+        });
+      });
+
+      console.log('Normalization complete! Reading file to base64...');
+      
+      const fs = require('fs');
+      const buffer = await fs.promises.readFile(outputPath);
+      const base64Audio = buffer.toString('base64');
+      const dataUri = `data:audio/mp3;base64,${base64Audio}`;
+
+      return { success: true, audioUrl: dataUri };
+    } catch (error: any) {
+      console.error('Normalize error:', error);
       return { success: false, error: error.message };
     }
   })

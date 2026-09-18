@@ -1,9 +1,13 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 
 // Custom APIs for renderer
 const api = {
-  downloadAudio: (url: string) => ipcRenderer.invoke('download-audio', url)
+  downloadAudio: (url: string, type: string) => ipcRenderer.invoke('download-audio', url, type),
+  normalizeAudio: (file: File, type: string) => {
+    const filePath = webUtils.getPathForFile(file)
+    return ipcRenderer.invoke('normalize-audio', filePath, type)
+  }
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to
