@@ -58,8 +58,8 @@ app.whenReady().then(() => {
   // Audio Downloader IPC
   ipcMain.handle('download-audio', async (_, url: string, type: string = 'track') => {
     try {
-      // Use a fixed filename for the downloaded track based on its type
-      const outputPath = join(app.getPath('userData'), `downloaded_${type}.mp3`);
+      // Unify the output filename so vocal isolation can always find it regardless of source
+      const outputPath = join(app.getPath('userData'), `track_${type}.mp3`);
       console.log(`Downloading ${type} audio from ${url}...`);
       
       await ytDlp(url, {
@@ -71,8 +71,7 @@ app.whenReady().then(() => {
         noWarnings: true,
         preferFreeFormats: true,
         addHeader: ['referer:youtube.com', 'user-agent:Mozilla/5.0'],
-        forceOverwrites: true,
-        postprocessorArgs: 'ffmpeg:-af loudnorm' // Normalize audio volume during extraction
+        forceOverwrites: true
       });
 
       console.log('Download complete! Reading file to base64...');
@@ -92,13 +91,13 @@ app.whenReady().then(() => {
   // Audio Normalizer IPC (for local files)
   ipcMain.handle('normalize-audio', async (_, inputPath: string, type: string = 'track') => {
     try {
-      const outputPath = join(app.getPath('userData'), `normalized_${type}.mp3`);
+      const outputPath = join(app.getPath('userData'), `track_${type}.mp3`);
       console.log(`Normalizing local audio from ${inputPath}...`);
       
       const { spawn } = require('child_process');
       await new Promise<void>((resolve, reject) => {
-        // -y overwrites, -i is input, -af loudnorm applies EBU R128 volume normalization
-        const proc = spawn(ffmpegStatic, ['-y', '-i', inputPath, '-af', 'loudnorm', outputPath]);
+        // -y overwrites, -i is input. We must remove loudnorm so phase isn't destroyed.
+        const proc = spawn(ffmpegStatic, ['-y', '-i', inputPath, outputPath]);
         
         proc.on('close', (code) => {
           if (code === 0) resolve();
@@ -116,6 +115,47 @@ app.whenReady().then(() => {
       return { success: true, audioUrl: dataUri };
     } catch (error: any) {
       console.error('Normalize error:', error);
+      return { success: false, error: error.message };
+    }
+  })
+
+  // Vocal Isolation IPC
+  ipcMain.handle('isolate-vocals', async () => {
+    try {
+      const normalPath = join(app.getPath('userData'), `track_normal.mp3`);
+      const instrumentalPath = join(app.getPath('userData'), `track_instrumental.mp3`);
+      const outputPath = join(app.getPath('userData'), `track_vocals.mp3`);
+      
+      console.log(`Isolating vocals via phase cancellation...`);
+      
+      const { spawn } = require('child_process');
+      await new Promise<void>((resolve, reject) => {
+        const proc = spawn(ffmpegStatic, [
+          '-y', 
+          '-i', normalPath, 
+          '-i', instrumentalPath, 
+          // amerge joins the two stereo tracks into one 4-channel track. 
+          // pan subtracts the instrumental channels from the normal channels.
+          '-filter_complex', '[0:a][1:a]amerge=inputs=2[a];[a]pan=stereo|c0=c0-c2|c1=c1-c3[out]', 
+          '-map', '[out]', 
+          outputPath
+        ]);
+        
+        proc.on('close', (code) => {
+          if (code === 0) resolve();
+          else reject(new Error(`ffmpeg exited with code ${code}. Ensure both tracks are downloaded.`));
+        });
+      });
+
+      console.log('Isolation complete! Reading file to base64...');
+      const fs = require('fs');
+      const buffer = await fs.promises.readFile(outputPath);
+      const base64Audio = buffer.toString('base64');
+      const dataUri = `data:audio/mp3;base64,${base64Audio}`;
+
+      return { success: true, audioUrl: dataUri };
+    } catch (error: any) {
+      console.error('Isolate error:', error);
       return { success: false, error: error.message };
     }
   })

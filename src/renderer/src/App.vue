@@ -9,6 +9,9 @@ const urlInstrumental = ref('')
 const statusInstrumental = ref('')
 const audioUrlInstrumental = ref('')
 
+const statusVocals = ref('')
+const audioUrlVocals = ref('')
+
 const downloadAudio = async (type: 'normal' | 'instrumental'): Promise<void> => {
   const url = type === 'normal' ? urlNormal.value : urlInstrumental.value;
   if (!url) return;
@@ -72,11 +75,26 @@ const handleFileUpload = async (event: Event, type: 'normal' | 'instrumental') =
     }
   }
 }
+
+const isolateVocals = async () => {
+  statusVocals.value = 'Isolating vocals (this may take a moment)...'
+  audioUrlVocals.value = ''
+  const result = await window.api.isolateVocals()
+  if (result.success && result.audioUrl) {
+    statusVocals.value = 'Success!'
+    audioUrlVocals.value = result.audioUrl
+  } else {
+    statusVocals.value = `Error: ${result.error}`
+  }
+}
 </script>
 
 <template>
   <img alt="logo" class="logo" src="./assets/electron.svg" />
-
+  <div class="creator">KaraoScore Audio Pipeline</div>
+  <div class="text">
+    Test phase cancellation vocal isolation
+  </div>
   
   <div style="display: flex; justify-content: center; gap: 60px; margin-top: 2rem; width: 100%;">
     <!-- Normal Track -->
@@ -126,5 +144,18 @@ const handleFileUpload = async (event: Event, type: 'normal' | 'instrumental') =
       <p v-if="statusInstrumental" style="margin-top: 10px; font-size: 0.9em; max-width: 300px; text-align: center;">{{ statusInstrumental }}</p>
       <audio v-if="audioUrlInstrumental" :src="audioUrlInstrumental" controls style="margin-top: 15px; width: 300px;"></audio>
     </div>
+  </div>
+
+  <!-- Isolated Vocals Result -->
+  <div style="display: flex; flex-direction: column; align-items: center; margin-top: 3rem; padding-top: 2rem; border-top: 1px solid #444; width: 80%;">
+    <button 
+      @click="isolateVocals" 
+      :disabled="!audioUrlNormal || !audioUrlInstrumental"
+      style="padding: 15px 30px; font-size: 1.1em; font-weight: bold; cursor: pointer; background-color: #4CAF50; color: white; border: none; border-radius: 8px;"
+    >
+      Isolate Vocals (Phase Cancellation)
+    </button>
+    <p v-if="statusVocals" style="margin-top: 15px; font-size: 0.95em;">{{ statusVocals }}</p>
+    <audio v-if="audioUrlVocals" :src="audioUrlVocals" controls style="margin-top: 15px; width: 400px;"></audio>
   </div>
 </template>

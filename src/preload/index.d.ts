@@ -5,7 +5,8 @@ declare global {
     electron: ElectronAPI
     api: {
       downloadAudio: (url: string, type: string) => Promise<{ success: boolean; message?: string; error?: string; audioUrl?: string }>,
-      normalizeAudio: (file: File, type: string) => Promise<{ success: boolean; message?: string; error?: string; audioUrl?: string }>
+      normalizeAudio: (file: File, type: string) => Promise<{ success: boolean; message?: string; error?: string; audioUrl?: string }>,
+      isolateVocals: () => Promise<{ success: boolean; message?: string; error?: string; audioUrl?: string }>
     }
   }
 }

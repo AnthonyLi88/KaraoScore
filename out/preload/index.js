@@ -6,7 +6,8 @@ const api = {
   normalizeAudio: (file, type) => {
     const filePath = electron.webUtils.getPathForFile(file);
     return electron.ipcRenderer.invoke("normalize-audio", filePath, type);
-  }
+  },
+  isolateVocals: () => electron.ipcRenderer.invoke("isolate-vocals")
 };
 if (process.contextIsolated) {
   try {
