@@ -123,12 +123,6 @@ const isolateVocalsDemucs = async () => {
 </script>
 
 <template>
-  <img alt="logo" class="logo" src="./assets/electron.svg" />
-  <div class="creator">KaraoScore Audio Pipeline</div>
-  <div class="text">
-    Test phase cancellation and AI source separation
-  </div>
-  
   <div style="display: flex; justify-content: center; gap: 60px; margin-top: 2rem; width: 100%;">
     <!-- Normal Track -->
     <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
