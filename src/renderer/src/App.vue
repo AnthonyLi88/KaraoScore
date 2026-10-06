@@ -76,12 +76,45 @@ const handleFileUpload = async (event: Event, type: 'normal' | 'instrumental') =
   }
 }
 
-const isolateVocals = async () => {
-  statusVocals.value = 'Isolating vocals (this may take a moment)...'
+const isolateVocalsPhase = async () => {
+  statusVocals.value = 'Isolating vocals via Phase Cancellation...'
   audioUrlVocals.value = ''
-  const result = await window.api.isolateVocals()
+  const result = await window.api.isolateVocalsPhase()
   if (result.success && result.audioUrl) {
-    statusVocals.value = 'Success!'
+    statusVocals.value = 'Success (Phase)!'
+    audioUrlVocals.value = result.audioUrl
+  } else {
+    statusVocals.value = `Error: ${result.error}`
+  }
+}
+
+const isolateVocalsDemucs = async () => {
+  // 1. Check if the AI Environment is ready
+  statusVocals.value = 'Checking AI dependencies...'
+  const envCheck = await window.api.checkDemucsEnv()
+  
+  if (envCheck.status === 'missing_python') {
+    statusVocals.value = 'Error: You must install Python on your computer first!'
+    alert('Python 3 is required to use Demucs AI. Please install it from python.org, then try again.')
+    return
+  }
+
+  // 2. Install if needed
+  if (envCheck.status === 'needs_install') {
+    statusVocals.value = 'Downloading and installing AI models (This takes a few minutes, please do not close the app)...'
+    const installResult = await window.api.installDemucs()
+    if (!installResult.success) {
+      statusVocals.value = `Install Error: ${installResult.error}`
+      return
+    }
+  }
+
+  // 3. Run the AI Isolation
+  statusVocals.value = 'Isolating vocals via AI (This will take a few minutes)...'
+  audioUrlVocals.value = ''
+  const result = await window.api.isolateVocalsDemucs()
+  if (result.success && result.audioUrl) {
+    statusVocals.value = 'Success (AI Demucs)!'
     audioUrlVocals.value = result.audioUrl
   } else {
     statusVocals.value = `Error: ${result.error}`
@@ -90,12 +123,6 @@ const isolateVocals = async () => {
 </script>
 
 <template>
-  <img alt="logo" class="logo" src="./assets/electron.svg" />
-  <div class="creator">KaraoScore Audio Pipeline</div>
-  <div class="text">
-    Test phase cancellation vocal isolation
-  </div>
-  
   <div style="display: flex; justify-content: center; gap: 60px; margin-top: 2rem; width: 100%;">
     <!-- Normal Track -->
     <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
@@ -148,13 +175,23 @@ const isolateVocals = async () => {
 
   <!-- Isolated Vocals Result -->
   <div style="display: flex; flex-direction: column; align-items: center; margin-top: 3rem; padding-top: 2rem; border-top: 1px solid #444; width: 80%;">
-    <button 
-      @click="isolateVocals" 
-      :disabled="!audioUrlNormal || !audioUrlInstrumental"
-      style="padding: 15px 30px; font-size: 1.1em; font-weight: bold; cursor: pointer; background-color: #4CAF50; color: white; border: none; border-radius: 8px;"
-    >
-      Isolate Vocals (Phase Cancellation)
-    </button>
+    <div style="display: flex; gap: 20px;">
+      <button 
+        @click="isolateVocalsPhase" 
+        :disabled="!audioUrlNormal || !audioUrlInstrumental"
+        style="padding: 15px 30px; font-size: 1.1em; font-weight: bold; cursor: pointer; background-color: #4CAF50; color: white; border: none; border-radius: 8px;"
+      >
+        Isolate Vocals (Phase)
+      </button>
+
+      <button 
+        @click="isolateVocalsDemucs" 
+        :disabled="!audioUrlNormal"
+        style="padding: 15px 30px; font-size: 1.1em; font-weight: bold; cursor: pointer; background-color: #9C27B0; color: white; border: none; border-radius: 8px;"
+      >
+        Isolate Vocals (Demucs AI)
+      </button>
+    </div>
     <p v-if="statusVocals" style="margin-top: 15px; font-size: 0.95em;">{{ statusVocals }}</p>
     <audio v-if="audioUrlVocals" :src="audioUrlVocals" controls style="margin-top: 15px; width: 400px;"></audio>
   </div>

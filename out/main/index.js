@@ -31,11 +31,7 @@ function createWindow() {
   }
 }
 electron.app.whenReady().then(() => {
-  utils.electronApp.setAppUserModelId("com.electron");
-  electron.app.on("browser-window-created", (_, window) => {
-    utils.optimizer.watchWindowShortcuts(window);
-  });
-  electron.ipcMain.on("ping", () => console.log("pong"));
+  utils.electronApp.setAppUserModelId("com.karaoscore");
   electron.ipcMain.handle("download-audio", async (_, url, type = "track") => {
     try {
       const outputPath = path.join(electron.app.getPath("userData"), `track_${type}.mp3`);
@@ -85,11 +81,11 @@ electron.app.whenReady().then(() => {
       return { success: false, error: error.message };
     }
   });
-  electron.ipcMain.handle("isolate-vocals", async () => {
+  electron.ipcMain.handle("isolate-vocals-phase", async () => {
     try {
       const normalPath = path.join(electron.app.getPath("userData"), `track_normal.mp3`);
       const instrumentalPath = path.join(electron.app.getPath("userData"), `track_instrumental.mp3`);
-      const outputPath = path.join(electron.app.getPath("userData"), `track_vocals.mp3`);
+      const outputPath = path.join(electron.app.getPath("userData"), `track_vocals_phase.mp3`);
       console.log(`Isolating vocals via phase cancellation...`);
       const { spawn } = require("child_process");
       await new Promise((resolve, reject) => {
@@ -99,8 +95,6 @@ electron.app.whenReady().then(() => {
           normalPath,
           "-i",
           instrumentalPath,
-          // amerge joins the two stereo tracks into one 4-channel track. 
-          // pan subtracts the instrumental channels from the normal channels.
           "-filter_complex",
           "[0:a][1:a]amerge=inputs=2[a];[a]pan=stereo|c0=c0-c2|c1=c1-c3[out]",
           "-map",
@@ -112,14 +106,97 @@ electron.app.whenReady().then(() => {
           else reject(new Error(`ffmpeg exited with code ${code}. Ensure both tracks are downloaded.`));
         });
       });
-      console.log("Isolation complete! Reading file to base64...");
+      console.log("Phase Isolation complete! Reading file to base64...");
       const fs = require("fs");
       const buffer = await fs.promises.readFile(outputPath);
       const base64Audio = buffer.toString("base64");
       const dataUri = `data:audio/mp3;base64,${base64Audio}`;
       return { success: true, audioUrl: dataUri };
     } catch (error) {
-      console.error("Isolate error:", error);
+      console.error("Phase Isolate error:", error);
+      return { success: false, error: error.message };
+    }
+  });
+  electron.ipcMain.handle("check-demucs-env", async () => {
+    try {
+      const { execSync } = require("child_process");
+      const isWindows = process.platform === "win32";
+      const pythonCmd = isWindows ? "python" : "python3";
+      try {
+        execSync(`${pythonCmd} --version`);
+      } catch (e) {
+        return { status: "missing_python", message: "Python 3 is not installed or not in PATH." };
+      }
+      const venvDir = path.join(electron.app.getPath("userData"), "ai-env");
+      const demucsCmd = path.join(venvDir, isWindows ? "Scripts" : "bin", isWindows ? "demucs.exe" : "demucs");
+      const fs = require("fs");
+      if (fs.existsSync(demucsCmd)) {
+        return { status: "ready" };
+      } else {
+        return { status: "needs_install" };
+      }
+    } catch (e) {
+      return { status: "error", message: e.message };
+    }
+  });
+  electron.ipcMain.handle("install-demucs", async () => {
+    try {
+      const { spawn } = require("child_process");
+      const isWindows = process.platform === "win32";
+      const pythonCmd = isWindows ? "python" : "python3";
+      const venvDir = path.join(electron.app.getPath("userData"), "ai-env");
+      const pipCmd = path.join(venvDir, isWindows ? "Scripts" : "bin", isWindows ? "pip.exe" : "pip");
+      console.log("Creating Python virtual environment...");
+      await new Promise((resolve, reject) => {
+        const proc = spawn(pythonCmd, ["-m", "venv", venvDir]);
+        proc.on("close", (code) => {
+          if (code === 0) resolve();
+          else reject(new Error("Failed to create virtual environment."));
+        });
+      });
+      console.log("Installing demucs into virtual environment...");
+      await new Promise((resolve, reject) => {
+        const proc = spawn(pipCmd, ["install", "-U", "demucs", "torchaudio", "numpy"]);
+        proc.on("close", (code) => {
+          if (code === 0) resolve();
+          else reject(new Error("Failed to install demucs via pip."));
+        });
+      });
+      return { success: true };
+    } catch (e) {
+      console.error("Install error:", e);
+      return { success: false, error: e.message };
+    }
+  });
+  electron.ipcMain.handle("isolate-vocals-demucs", async () => {
+    try {
+      const normalPath = path.join(electron.app.getPath("userData"), `track_normal.mp3`);
+      const outputDir = path.join(electron.app.getPath("userData"), "demucs_output");
+      const isWindows = process.platform === "win32";
+      const venvDir = path.join(electron.app.getPath("userData"), "ai-env");
+      const demucsCmd = path.join(venvDir, isWindows ? "Scripts" : "bin", isWindows ? "demucs.exe" : "demucs");
+      console.log(`Isolating vocals via Demucs AI...`);
+      const { spawn } = require("child_process");
+      await new Promise((resolve, reject) => {
+        const proc = spawn(demucsCmd, ["--two-stems", "vocals", "-n", "htdemucs", "-o", outputDir, normalPath]);
+        let errorOutput = "";
+        proc.stderr.on("data", (data) => {
+          errorOutput += data.toString();
+        });
+        proc.on("close", (code) => {
+          if (code === 0) resolve();
+          else reject(new Error(`Demucs failed (code ${code}): ${errorOutput}`));
+        });
+      });
+      console.log("AI Isolation complete! Reading file to base64...");
+      const fs = require("fs");
+      const vocalsPath = path.join(outputDir, "htdemucs", "track_normal", "vocals.wav");
+      const buffer = await fs.promises.readFile(vocalsPath);
+      const base64Audio = buffer.toString("base64");
+      const dataUri = `data:audio/wav;base64,${base64Audio}`;
+      return { success: true, audioUrl: dataUri };
+    } catch (error) {
+      console.error("Demucs error:", error);
       return { success: false, error: error.message };
     }
   });

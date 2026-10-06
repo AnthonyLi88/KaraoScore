@@ -7,7 +7,10 @@ const api = {
     const filePath = electron.webUtils.getPathForFile(file);
     return electron.ipcRenderer.invoke("normalize-audio", filePath, type);
   },
-  isolateVocals: () => electron.ipcRenderer.invoke("isolate-vocals")
+  isolateVocalsPhase: () => electron.ipcRenderer.invoke("isolate-vocals-phase"),
+  isolateVocalsDemucs: () => electron.ipcRenderer.invoke("isolate-vocals-demucs"),
+  checkDemucsEnv: () => electron.ipcRenderer.invoke("check-demucs-env"),
+  installDemucs: () => electron.ipcRenderer.invoke("install-demucs")
 };
 if (process.contextIsolated) {
   try {

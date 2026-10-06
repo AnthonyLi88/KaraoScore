@@ -8,7 +8,10 @@ const api = {
     const filePath = webUtils.getPathForFile(file)
     return ipcRenderer.invoke('normalize-audio', filePath, type)
   },
-  isolateVocals: () => ipcRenderer.invoke('isolate-vocals')
+  isolateVocalsPhase: () => ipcRenderer.invoke('isolate-vocals-phase'),
+  isolateVocalsDemucs: () => ipcRenderer.invoke('isolate-vocals-demucs'),
+  checkDemucsEnv: () => ipcRenderer.invoke('check-demucs-env'),
+  installDemucs: () => ipcRenderer.invoke('install-demucs')
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to
