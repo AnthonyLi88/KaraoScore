@@ -31,11 +31,7 @@ function createWindow() {
   }
 }
 electron.app.whenReady().then(() => {
-  utils.electronApp.setAppUserModelId("com.electron");
-  electron.app.on("browser-window-created", (_, window) => {
-    utils.optimizer.watchWindowShortcuts(window);
-  });
-  electron.ipcMain.on("ping", () => console.log("pong"));
+  utils.electronApp.setAppUserModelId("com.karaoscore");
   electron.ipcMain.handle("download-audio", async (_, url, type = "track") => {
     try {
       const outputPath = path.join(electron.app.getPath("userData"), `track_${type}.mp3`);
