@@ -12,6 +12,13 @@ const audioUrlInstrumental = ref('')
 const statusVocals = ref('')
 const audioUrlVocals = ref('')
 
+// Navigation
+const currentNav = ref('import')
+
+// Song Metadata preview
+const songTitle = ref('Midnight City')
+const songArtist = ref('M83')
+
 const downloadAudio = async (type: 'normal' | 'instrumental'): Promise<void> => {
   const url = type === 'normal' ? urlNormal.value : urlInstrumental.value
   if (!url) return
@@ -120,6 +127,60 @@ const isolateVocalsDemucs = async () => {
 
 <template>
   <div class="app-shell">
+    <!-- Left Sidebar -->
+    <aside class="sidebar">
+      <!-- App Brand -->
+      <div class="brand">
+        <div class="brand-badge">VA</div>
+        <div>
+          <div class="brand-title">VocalArc</div>
+          <div class="brand-subtitle">KARAOKE MODE</div>
+        </div>
+      </div>
+
+      <!-- Navigation -->
+      <nav class="nav-links">
+        <button
+          class="nav-btn"
+          :class="{ active: currentNav === 'home' }"
+          @click="currentNav = 'home'"
+        >
+          Home
+        </button>
+        <button
+          class="nav-btn"
+          :class="{ active: currentNav === 'import' }"
+          @click="currentNav = 'import'"
+        >
+          Import
+        </button>
+        <button
+          class="nav-btn"
+          :class="{ active: currentNav === 'library' }"
+          @click="currentNav = 'library'"
+        >
+          Library
+        </button>
+      </nav>
+
+      <!-- Active Set Box -->
+      <div class="active-set">
+        <div class="active-set-label">ACTIVE SET</div>
+        <div class="active-set-title">{{ songTitle || 'Midnight City' }}</div>
+        <div class="active-set-meta">{{ songArtist || 'M83' }} &bull; 04:03</div>
+      </div>
+
+      <div class="sidebar-spacer"></div>
+
+      <!-- Sidebar Footer -->
+      <div class="sidebar-footer">
+        <button class="footer-btn">Audio settings</button>
+        <button class="footer-btn">Shortcuts</button>
+        <div class="device-pill">Scarlett Solo &bull; 48 kHz</div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
     <main class="main-content">
       <!-- Page Header -->
       <header class="page-header">
@@ -219,6 +280,140 @@ const isolateVocalsDemucs = async () => {
   overflow: hidden;
 }
 
+/* Sidebar */
+.sidebar {
+  width: 220px;
+  min-width: 220px;
+  background-color: #111217;
+  border-right: 1px solid #1f212a;
+  display: flex;
+  flex-direction: column;
+  padding: 18px 14px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.brand-badge {
+  width: 32px;
+  height: 32px;
+  background-color: #ea580c;
+  color: #fff;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.brand-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.brand-subtitle {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.nav-links {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nav-btn {
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.nav-btn:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+}
+
+.nav-btn.active {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.active-set {
+  margin-top: 24px;
+  padding: 12px;
+  background: #16171e;
+  border: 1px solid #232532;
+  border-radius: 6px;
+}
+
+.active-set-label {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: #6b7280;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.active-set-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.active-set-meta {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.sidebar-spacer {
+  flex: 1;
+}
+
+.sidebar-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 12px;
+  border-top: 1px solid #1f212a;
+}
+
+.footer-btn {
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.footer-btn:hover {
+  color: #fff;
+}
+
+.device-pill {
+  font-size: 11px;
+  color: #6b7280;
+  padding: 6px 8px;
+}
+
+/* Main Content */
 .main-content {
   flex: 1;
   overflow-y: auto;
