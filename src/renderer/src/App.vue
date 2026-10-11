@@ -330,6 +330,11 @@ const isolateVocalsDemucs = async () => {
                 @change="(e) => onFileSelected(e, 'instrumental')"
               />
             </div>
+
+            <!-- Audio Player -->
+            <div v-if="audioUrlInstrumental" class="player-wrap">
+              <audio :src="audioUrlInstrumental" controls class="audio-control"></audio>
+            </div>
           </div>
 
           <!-- Track B: Reference Vocal / Normal Track -->
@@ -383,6 +388,11 @@ const isolateVocalsDemucs = async () => {
                 @change="(e) => onFileSelected(e, 'normal')"
               />
             </div>
+
+            <!-- Audio Player -->
+            <div v-if="audioUrlNormal" class="player-wrap">
+              <audio :src="audioUrlNormal" controls class="audio-control"></audio>
+            </div>
           </div>
 
           <!-- Isolation Block -->
@@ -404,6 +414,7 @@ const isolateVocalsDemucs = async () => {
               </button>
             </div>
             <p v-if="statusVocals" style="font-size: 0.9em; color: #ea580c; margin: 0;">{{ statusVocals }}</p>
+            <audio v-if="audioUrlVocals" :src="audioUrlVocals" controls style="width: 360px; height: 34px;"></audio>
           </div>
         </section>
       </div>
@@ -862,5 +873,17 @@ const isolateVocalsDemucs = async () => {
 
 .btn-secondary:hover {
   background: #222530;
+}
+
+.player-wrap {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.audio-control {
+  width: 100%;
+  height: 34px;
 }
 </style>
