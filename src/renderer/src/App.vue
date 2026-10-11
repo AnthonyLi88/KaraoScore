@@ -1,16 +1,23 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
+// Functional Track States
 const urlNormal = ref('')
 const statusNormal = ref('')
 const audioUrlNormal = ref('')
+const normalFileName = ref('')
 
 const urlInstrumental = ref('')
 const statusInstrumental = ref('')
 const audioUrlInstrumental = ref('')
+const instrumentalFileName = ref('')
 
 const statusVocals = ref('')
 const audioUrlVocals = ref('')
+
+// Tabs: 'url' | 'file'
+const tabInstrumental = ref<'url' | 'file'>('url')
+const tabNormal = ref<'url' | 'file'>('file')
 
 // Navigation
 const currentNav = ref('import')
@@ -21,6 +28,19 @@ const songArtist = ref('M83')
 const songYear = ref('2011')
 const songBpm = ref('105')
 const songKey = ref('B minor')
+
+const onFileSelected = (event: Event, type: 'normal' | 'instrumental') => {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  if (type === 'normal') {
+    normalFileName.value = file.name
+  } else {
+    instrumentalFileName.value = file.name
+  }
+  handleFileUpload(event, type)
+}
 
 const downloadAudio = async (type: 'normal' | 'instrumental'): Promise<void> => {
   const url = type === 'normal' ? urlNormal.value : urlInstrumental.value
@@ -38,14 +58,14 @@ const downloadAudio = async (type: 'normal' | 'instrumental'): Promise<void> => 
 
   if (type === 'normal') {
     if (result.success && result.audioUrl) {
-      statusNormal.value = 'Success!'
+      statusNormal.value = 'Ready'
       audioUrlNormal.value = result.audioUrl
     } else {
       statusNormal.value = `Error: ${result.error}`
     }
   } else {
     if (result.success && result.audioUrl) {
-      statusInstrumental.value = 'Success!'
+      statusInstrumental.value = 'Ready'
       audioUrlInstrumental.value = result.audioUrl
     } else {
       statusInstrumental.value = `Error: ${result.error}`
@@ -70,14 +90,14 @@ const handleFileUpload = async (event: Event, type: 'normal' | 'instrumental') =
 
   if (type === 'normal') {
     if (result.success && result.audioUrl) {
-      statusNormal.value = `Loaded: ${file.name}`
+      statusNormal.value = 'Ready'
       audioUrlNormal.value = result.audioUrl
     } else {
       statusNormal.value = `Error: ${result.error}`
     }
   } else {
     if (result.success && result.audioUrl) {
-      statusInstrumental.value = `Loaded: ${file.name}`
+      statusInstrumental.value = 'Ready'
       audioUrlInstrumental.value = result.audioUrl
     } else {
       statusInstrumental.value = `Error: ${result.error}`
@@ -183,9 +203,9 @@ const isolateVocalsDemucs = async () => {
       </div>
     </aside>
 
-    <!-- Main Content Area -->
+    <!-- Main Workspace Area -->
     <main class="main-content">
-      <!-- Page Header -->
+      <!-- Header -->
       <header class="page-header">
         <div>
           <h1>Import song</h1>
@@ -206,6 +226,7 @@ const isolateVocalsDemucs = async () => {
         <span class="step-item">03 Validate &amp; save</span>
       </div>
 
+      <!-- Two-Column Grid -->
       <div class="grid-container">
         <!-- Left Column: Song Details -->
         <section class="panel song-panel">
@@ -256,76 +277,133 @@ const isolateVocalsDemucs = async () => {
           </div>
         </section>
 
-        <!-- Right Side: Existing audio functional tracks during development -->
+        <!-- Right Column: Audio Sources & Vocal Isolation -->
         <section class="sources-column">
-          <div class="panel" style="display: flex; flex-direction: column; gap: 20px;">
-            <div style="display: flex; justify-content: space-around; width: 100%;">
-              <!-- Normal Track -->
-              <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
-                <h3>Normal Track</h3>
-                <div style="display: flex; flex-direction: column; gap: 8px;">
-                  <div style="display: flex; gap: 5px;">
-                    <input
-                      v-model="urlNormal"
-                      placeholder="Enter YouTube URL"
-                      style="padding: 8px; width: 180px; border-radius: 5px; border: 1px solid #333; background: #0f1014; color: white;"
-                    />
-                    <button @click="downloadAudio('normal')" style="padding: 8px 12px; cursor: pointer; background: #ea580c; color: white; border: none; border-radius: 4px;">Download</button>
-                  </div>
-                  <input
-                    type="file"
-                    accept="audio/*"
-                    @change="(e) => handleFileUpload(e, 'normal')"
-                    style="width: 250px; padding: 5px;"
-                  />
-                </div>
-                <p v-if="statusNormal" style="font-size: 0.85em; color: #ea580c;">{{ statusNormal }}</p>
-                <audio v-if="audioUrlNormal" :src="audioUrlNormal" controls style="width: 260px; height: 32px;"></audio>
+          <!-- Track A: Instrumental Track -->
+          <div class="panel track-panel">
+            <div class="track-header">
+              <span class="tag-letter">A</span>
+              <div class="track-info">
+                <h3>Instrumental track</h3>
+                <p>Playback bed the singer performs over. No guide vocal.</p>
               </div>
-
-              <!-- Instrumental Track -->
-              <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
-                <h3>Instrumental Track</h3>
-                <div style="display: flex; flex-direction: column; gap: 8px;">
-                  <div style="display: flex; gap: 5px;">
-                    <input
-                      v-model="urlInstrumental"
-                      placeholder="Enter YouTube URL"
-                      style="padding: 8px; width: 180px; border-radius: 5px; border: 1px solid #333; background: #0f1014; color: white;"
-                    />
-                    <button @click="downloadAudio('instrumental')" style="padding: 8px 12px; cursor: pointer; background: #ea580c; color: white; border: none; border-radius: 4px;">Download</button>
-                  </div>
-                  <input
-                    type="file"
-                    accept="audio/*"
-                    @change="(e) => handleFileUpload(e, 'instrumental')"
-                    style="width: 250px; padding: 5px;"
-                  />
-                </div>
-                <p v-if="statusInstrumental" style="font-size: 0.85em; color: #ea580c;">{{ statusInstrumental }}</p>
-                <audio v-if="audioUrlInstrumental" :src="audioUrlInstrumental" controls style="width: 260px; height: 32px;"></audio>
-              </div>
+              <span v-if="statusInstrumental" class="track-status">{{ statusInstrumental }}</span>
             </div>
 
-            <!-- Isolation buttons -->
-            <div style="display: flex; justify-content: center; gap: 15px; padding-top: 15px; border-top: 1px solid #222;">
+            <!-- Tabs: URL vs File -->
+            <div class="tabs">
+              <button
+                class="tab"
+                :class="{ active: tabInstrumental === 'url' }"
+                @click="tabInstrumental = 'url'"
+              >
+                YouTube URL
+              </button>
+              <button
+                class="tab"
+                :class="{ active: tabInstrumental === 'file' }"
+                @click="tabInstrumental = 'file'"
+              >
+                Local file
+              </button>
+            </div>
+
+            <!-- YouTube URL Input -->
+            <div v-if="tabInstrumental === 'url'" class="input-action-row">
+              <input
+                v-model="urlInstrumental"
+                type="text"
+                placeholder="Enter YouTube URL"
+                class="text-input"
+              />
+              <button class="btn btn-secondary" @click="downloadAudio('instrumental')">
+                Download
+              </button>
+            </div>
+
+            <!-- Local File Input -->
+            <div v-else class="input-action-row">
+              <input
+                type="file"
+                accept="audio/*"
+                class="file-input"
+                @change="(e) => onFileSelected(e, 'instrumental')"
+              />
+            </div>
+          </div>
+
+          <!-- Track B: Reference Vocal / Normal Track -->
+          <div class="panel track-panel">
+            <div class="track-header">
+              <span class="tag-letter">B</span>
+              <div class="track-info">
+                <h3>Reference acapella</h3>
+                <p>Guide vocal only. Visible during performance and independently audible.</p>
+              </div>
+              <span v-if="statusNormal" class="track-status">{{ statusNormal }}</span>
+            </div>
+
+            <!-- Tabs: URL vs File -->
+            <div class="tabs">
+              <button
+                class="tab"
+                :class="{ active: tabNormal === 'url' }"
+                @click="tabNormal = 'url'"
+              >
+                YouTube URL
+              </button>
+              <button
+                class="tab"
+                :class="{ active: tabNormal === 'file' }"
+                @click="tabNormal = 'file'"
+              >
+                Local file
+              </button>
+            </div>
+
+            <!-- YouTube URL Input -->
+            <div v-if="tabNormal === 'url'" class="input-action-row">
+              <input
+                v-model="urlNormal"
+                type="text"
+                placeholder="Enter YouTube URL"
+                class="text-input"
+              />
+              <button class="btn btn-secondary" @click="downloadAudio('normal')">
+                Download
+              </button>
+            </div>
+
+            <!-- Local File Input -->
+            <div v-else class="input-action-row">
+              <input
+                type="file"
+                accept="audio/*"
+                class="file-input"
+                @change="(e) => onFileSelected(e, 'normal')"
+              />
+            </div>
+          </div>
+
+          <!-- Isolation Block -->
+          <div class="panel" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+            <div style="display: flex; gap: 15px;">
               <button
                 @click="isolateVocalsPhase"
                 :disabled="!audioUrlNormal || !audioUrlInstrumental"
-                style="padding: 10px 18px; font-weight: 600; cursor: pointer; background-color: #172b1d; color: #4ade80; border: 1px solid #24462e; border-radius: 6px;"
+                class="btn btn-secondary"
               >
                 Isolate Vocals (Phase)
               </button>
               <button
                 @click="isolateVocalsDemucs"
                 :disabled="!audioUrlNormal"
-                style="padding: 10px 18px; font-weight: 600; cursor: pointer; background-color: #2b1836; color: #c084fc; border: 1px solid #462558; border-radius: 6px;"
+                class="btn btn-secondary"
               >
                 Isolate Vocals (Demucs AI)
               </button>
             </div>
-            <p v-if="statusVocals" style="text-align: center; font-size: 0.9em; color: #ea580c;">{{ statusVocals }}</p>
-            <audio v-if="audioUrlVocals" :src="audioUrlVocals" controls style="margin: 0 auto; width: 360px; height: 34px;"></audio>
+            <p v-if="statusVocals" style="font-size: 0.9em; color: #ea580c; margin: 0;">{{ statusVocals }}</p>
           </div>
         </section>
       </div>
@@ -658,7 +736,131 @@ const isolateVocalsDemucs = async () => {
   color: #ea580c;
 }
 
+/* Right Column */
 .sources-column {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.track-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.track-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.tag-letter {
+  width: 22px;
+  height: 22px;
+  background: #2b1713;
+  color: #ea580c;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.track-info {
+  flex: 1;
+}
+
+.track-info h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 2px 0;
+}
+
+.track-info p {
+  font-size: 12px;
+  color: #8b92a0;
+  margin: 0;
+}
+
+.track-status {
+  font-size: 11px;
+  color: #ea580c;
+  font-weight: 500;
+}
+
+.tabs {
+  display: flex;
+  background: #101116;
+  border: 1px solid #20222c;
+  border-radius: 5px;
+  padding: 3px;
+}
+
+.tab {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #8b92a0;
+  padding: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.tab.active {
+  background: #1e202a;
+  color: #fff;
+}
+
+.input-action-row {
+  display: flex;
+  gap: 8px;
+}
+
+.text-input {
+  flex: 1;
+  background: #0f1014;
+  border: 1px solid #20222c;
+  border-radius: 5px;
+  padding: 7px 10px;
+  font-size: 12.5px;
+  color: #fff;
+  outline: none;
+}
+
+.text-input:focus {
+  border-color: #383c4e;
+}
+
+.file-input {
+  font-size: 12px;
+  color: #9ca3af;
+  padding: 4px 0;
+}
+
+.btn {
+  padding: 7px 14px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+}
+
+.btn-secondary {
+  background: #1a1c24;
+  border-color: #262937;
+  color: #e5e7eb;
+}
+
+.btn-secondary:hover {
+  background: #222530;
 }
 </style>
