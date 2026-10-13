@@ -122,13 +122,13 @@ const isolateVocalsDemucs = async () => {
   const envCheck = await window.api.checkDemucsEnv()
 
   if (envCheck.status === 'missing_python') {
-    statusVocals.value = 'Error: You must install Python on your computer first!'
+    statusVocals.value = 'Error: Python 3 is required!'
     alert('Python 3 is required to use Demucs AI. Please install it from python.org, then try again.')
     return
   }
 
   if (envCheck.status === 'needs_install') {
-    statusVocals.value = 'Downloading and installing AI models (This takes a few minutes, please do not close the app)...'
+    statusVocals.value = 'Installing AI models (please wait)...'
     const installResult = await window.api.installDemucs()
     if (!installResult.success) {
       statusVocals.value = `Install Error: ${installResult.error}`
@@ -136,11 +136,11 @@ const isolateVocalsDemucs = async () => {
     }
   }
 
-  statusVocals.value = 'Isolating vocals via AI (This will take a few minutes)...'
+  statusVocals.value = 'Isolating vocals via Demucs AI (takes a moment)...'
   audioUrlVocals.value = ''
   const result = await window.api.isolateVocalsDemucs()
   if (result.success && result.audioUrl) {
-    statusVocals.value = 'Success (AI Demucs)!'
+    statusVocals.value = 'Success (Demucs AI)!'
     audioUrlVocals.value = result.audioUrl
   } else {
     statusVocals.value = `Error: ${result.error}`
@@ -395,26 +395,49 @@ const isolateVocalsDemucs = async () => {
             </div>
           </div>
 
-          <!-- Isolation Block -->
-          <div class="panel" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
-            <div style="display: flex; gap: 15px;">
-              <button
-                @click="isolateVocalsPhase"
-                :disabled="!audioUrlNormal || !audioUrlInstrumental"
-                class="btn btn-secondary"
-              >
-                Isolate Vocals (Phase)
-              </button>
-              <button
-                @click="isolateVocalsDemucs"
-                :disabled="!audioUrlNormal"
-                class="btn btn-secondary"
-              >
-                Isolate Vocals (Demucs AI)
-              </button>
+          <!-- Bottom Card: Vocal Isolation & Actions -->
+          <div class="panel actions-panel">
+            <div class="actions-left">
+              <h3>Vocal Isolation &amp; Validation</h3>
+              <p class="desc-text">
+                Generate isolated vocals from your tracks using Phase Cancellation or Demucs AI.
+              </p>
+
+              <!-- Isolation Action Buttons -->
+              <div class="isolation-btn-row">
+                <button
+                  class="btn btn-isolate phase"
+                  :disabled="!audioUrlNormal || !audioUrlInstrumental"
+                  @click="isolateVocalsPhase"
+                >
+                  Isolate Vocals (Phase)
+                </button>
+                <button
+                  class="btn btn-isolate demucs"
+                  :disabled="!audioUrlNormal"
+                  @click="isolateVocalsDemucs"
+                >
+                  Isolate Vocals (Demucs AI)
+                </button>
+              </div>
+
+              <!-- Status Message -->
+              <div v-if="statusVocals" class="status-msg">
+                {{ statusVocals }}
+              </div>
+
+              <!-- Isolated Audio Player -->
+              <div v-if="audioUrlVocals" class="player-wrap">
+                <span class="preview-tag">Isolated Vocals:</span>
+                <audio :src="audioUrlVocals" controls class="audio-control"></audio>
+              </div>
             </div>
-            <p v-if="statusVocals" style="font-size: 0.9em; color: #ea580c; margin: 0;">{{ statusVocals }}</p>
-            <audio v-if="audioUrlVocals" :src="audioUrlVocals" controls style="width: 360px; height: 34px;"></audio>
+
+            <!-- Save Buttons -->
+            <div class="actions-right">
+              <button class="btn btn-primary">Save to library</button>
+              <button class="btn btn-secondary">Save as draft</button>
+            </div>
           </div>
         </section>
       </div>
@@ -430,6 +453,7 @@ const isolateVocalsDemucs = async () => {
   background-color: #0d0e12;
   color: #e5e7eb;
   overflow: hidden;
+  font-family: inherit;
 }
 
 /* Sidebar */
@@ -565,7 +589,7 @@ const isolateVocalsDemucs = async () => {
   padding: 6px 8px;
 }
 
-/* Main Content */
+/* Main Workspace */
 .main-content {
   flex: 1;
   overflow-y: auto;
@@ -875,6 +899,15 @@ const isolateVocalsDemucs = async () => {
   background: #222530;
 }
 
+.btn-primary {
+  background: #ea580c;
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: #f97316;
+}
+
 .player-wrap {
   margin-top: 4px;
   display: flex;
@@ -882,8 +915,73 @@ const isolateVocalsDemucs = async () => {
   gap: 10px;
 }
 
+.preview-tag {
+  font-size: 11.5px;
+  color: #8b92a0;
+  white-space: nowrap;
+}
+
 .audio-control {
   width: 100%;
   height: 34px;
+}
+
+/* Actions Panel */
+.actions-panel {
+  display: flex;
+  gap: 18px;
+}
+
+.actions-left {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.actions-left h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0;
+}
+
+.desc-text {
+  font-size: 12px;
+  color: #8b92a0;
+  margin: 0;
+}
+
+.isolation-btn-row {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-isolate {
+  padding: 8px 14px;
+  background: #1a1c24;
+  border-color: #262937;
+  color: #e5e7eb;
+}
+
+.btn-isolate:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.status-msg {
+  font-size: 11.5px;
+  color: #ea580c;
+  font-weight: 500;
+}
+
+.actions-right {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+  border-left: 1px solid #1f212a;
+  padding-left: 18px;
+  min-width: 130px;
 }
 </style>
