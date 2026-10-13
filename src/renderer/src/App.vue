@@ -29,6 +29,7 @@ const songYear = ref('2011')
 const songBpm = ref('105')
 const songKey = ref('B minor')
 
+// File input handlers
 const onFileSelected = (event: Event, type: 'normal' | 'instrumental') => {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
@@ -959,9 +960,26 @@ const isolateVocalsDemucs = async () => {
 
 .btn-isolate {
   padding: 8px 14px;
-  background: #1a1c24;
-  border-color: #262937;
-  color: #e5e7eb;
+}
+
+.btn-isolate.phase {
+  background: #132418;
+  color: #4ade80;
+  border-color: #1e3a26;
+}
+
+.btn-isolate.phase:hover:not(:disabled) {
+  background: #1a3222;
+}
+
+.btn-isolate.demucs {
+  background: #25162e;
+  color: #c084fc;
+  border-color: #3b224a;
+}
+
+.btn-isolate.demucs:hover:not(:disabled) {
+  background: #311c3e;
 }
 
 .btn-isolate:disabled {
