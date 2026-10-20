@@ -81,6 +81,31 @@ electron.app.whenReady().then(() => {
       return { success: false, error: error.message };
     }
   });
+  electron.ipcMain.handle("save-recording", async (_, buffer) => {
+    try {
+      const fs = require("fs");
+      const rawPath = path.join(electron.app.getPath("userData"), "track_recording_raw.webm");
+      const outputPath = path.join(electron.app.getPath("userData"), "track_recording.mp3");
+      console.log(`Saving ${buffer.length} bytes of user recording...`);
+      await fs.promises.writeFile(rawPath, Buffer.from(buffer));
+      const { spawn } = require("child_process");
+      await new Promise((resolve, reject) => {
+        const proc = spawn(ffmpegStatic, ["-y", "-i", rawPath, outputPath]);
+        proc.on("close", (code) => {
+          if (code === 0) resolve();
+          else reject(new Error(`ffmpeg conversion failed with code ${code}`));
+        });
+      });
+      console.log("Recording converted to mp3! Reading to base64...");
+      const convertedBuffer = await fs.promises.readFile(outputPath);
+      const base64Audio = convertedBuffer.toString("base64");
+      const dataUri = `data:audio/mp3;base64,${base64Audio}`;
+      return { success: true, audioUrl: dataUri };
+    } catch (error) {
+      console.error("Save recording error:", error);
+      return { success: false, error: error.message };
+    }
+  });
   electron.ipcMain.handle("isolate-vocals-phase", async () => {
     try {
       const normalPath = path.join(electron.app.getPath("userData"), `track_normal.mp3`);

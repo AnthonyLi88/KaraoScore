@@ -10,7 +10,8 @@ const api = {
   isolateVocalsPhase: () => electron.ipcRenderer.invoke("isolate-vocals-phase"),
   isolateVocalsDemucs: (trackType) => electron.ipcRenderer.invoke("isolate-vocals-demucs", trackType),
   checkDemucsEnv: () => electron.ipcRenderer.invoke("check-demucs-env"),
-  installDemucs: () => electron.ipcRenderer.invoke("install-demucs")
+  installDemucs: () => electron.ipcRenderer.invoke("install-demucs"),
+  saveRecording: (buffer) => electron.ipcRenderer.invoke("save-recording", buffer)
 };
 if (process.contextIsolated) {
   try {

@@ -9,7 +9,8 @@ declare global {
       isolateVocalsPhase: () => Promise<{ success: boolean; message?: string; error?: string; audioUrl?: string }>,
       isolateVocalsDemucs: (trackType?: 'normal' | 'instrumental') => Promise<{ success: boolean; message?: string; error?: string; audioUrl?: string }>,
       checkDemucsEnv: () => Promise<{ status: 'ready' | 'needs_install' | 'missing_python' | 'error'; message?: string }>,
-      installDemucs: () => Promise<{ success: boolean; error?: string }>
+      installDemucs: () => Promise<{ success: boolean; error?: string }>,
+      saveRecording: (buffer: Uint8Array) => Promise<{ success: boolean; message?: string; error?: string; audioUrl?: string }>
     }
   }
 }

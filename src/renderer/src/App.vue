@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 // Functional Track States
 const urlNormal = ref('')
@@ -14,6 +14,138 @@ const instrumentalFileName = ref('')
 
 const statusVocals = ref('')
 const audioUrlVocals = ref('')
+
+// Microphone Recording States
+const isRecording = ref(false)
+const recordingDuration = ref(0)
+const statusRecording = ref('')
+const audioUrlRecording = ref('')
+const playBackingWhileRecording = ref(true)
+
+// Gate mic input until Original song, Instrumental, and Isolated vocals are ready
+const canRecord = computed(() => {
+  return Boolean(audioUrlNormal.value && audioUrlInstrumental.value && audioUrlVocals.value)
+})
+
+const missingRequirements = computed(() => {
+  const missing: string[] = []
+  if (!audioUrlNormal.value) missing.push('Original song')
+  if (!audioUrlInstrumental.value) missing.push('Instrumental')
+  if (!audioUrlVocals.value) missing.push('Isolated vocals')
+  return missing
+})
+
+let mediaRecorder: MediaRecorder | null = null
+let recordingTimer: ReturnType<typeof setInterval> | null = null
+let audioChunks: Blob[] = []
+let backingAudioElem: HTMLAudioElement | null = null
+
+const formatTimer = (seconds: number) => {
+  const m = Math.floor(seconds / 60).toString().padStart(2, '0')
+  const s = (seconds % 60).toString().padStart(2, '0')
+  return `${m}:${s}`
+}
+
+const startRecording = async () => {
+  if (!canRecord.value) {
+    alert(`Microphone recording requires all 3 audio sources: ${missingRequirements.value.join(', ')}`)
+    return
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    audioChunks = []
+
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+      ? 'audio/webm;codecs=opus'
+      : MediaRecorder.isTypeSupported('audio/webm')
+      ? 'audio/webm'
+      : 'audio/mp4'
+
+    mediaRecorder = new MediaRecorder(stream, { mimeType })
+
+    mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        audioChunks.push(event.data)
+      }
+    }
+
+    mediaRecorder.onstop = async () => {
+      // Stop all mic tracks
+      stream.getTracks().forEach((track) => track.stop())
+
+      if (backingAudioElem) {
+        backingAudioElem.pause()
+        backingAudioElem.currentTime = 0
+      }
+
+      const audioBlob = new Blob(audioChunks, { type: mimeType })
+      if (audioBlob.size === 0) {
+        statusRecording.value = 'Recording empty'
+        return
+      }
+
+      statusRecording.value = 'Saving recording...'
+      const arrayBuffer = await audioBlob.arrayBuffer()
+      const uint8Array = new Uint8Array(arrayBuffer)
+
+      const result = await window.api.saveRecording(uint8Array)
+      if (result.success && result.audioUrl) {
+        audioUrlRecording.value = result.audioUrl
+        statusRecording.value = `Ready (${formatTimer(recordingDuration.value)})`
+      } else {
+        audioUrlRecording.value = URL.createObjectURL(audioBlob)
+        statusRecording.value = result.error ? `Saved locally: ${result.error}` : 'Ready'
+      }
+    }
+
+    mediaRecorder.start(250)
+    isRecording.value = true
+    recordingDuration.value = 0
+    statusRecording.value = 'Recording...'
+    audioUrlRecording.value = ''
+
+    recordingTimer = setInterval(() => {
+      recordingDuration.value++
+    }, 1000)
+
+    if (playBackingWhileRecording.value && audioUrlInstrumental.value) {
+      if (!backingAudioElem) {
+        backingAudioElem = new Audio()
+      }
+      backingAudioElem.src = audioUrlInstrumental.value
+      backingAudioElem.currentTime = 0
+      backingAudioElem.play().catch((e) => console.warn('Could not auto-play backing track:', e))
+    }
+  } catch (err: any) {
+    console.error('Microphone error:', err)
+    if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+      statusRecording.value = 'Mic permission denied'
+      alert('Microphone access was denied. Please allow microphone access in macOS System Settings > Privacy & Security > Microphone.')
+    } else {
+      statusRecording.value = `Error: ${err.message}`
+    }
+  }
+}
+
+const stopRecording = () => {
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop()
+  }
+  isRecording.value = false
+  if (recordingTimer) {
+    clearInterval(recordingTimer)
+    recordingTimer = null
+  }
+}
+
+const toggleRecording = () => {
+  if (isRecording.value) {
+    stopRecording()
+  } else {
+    startRecording()
+  }
+}
 
 // Tabs: 'url' | 'file'
 const tabNormal = ref<'url' | 'file'>('url')
@@ -155,9 +287,9 @@ const isolateVocalsDemucs = async () => {
     <aside class="sidebar">
       <!-- App Brand -->
       <div class="brand">
-        <div class="brand-badge">VA</div>
+        <div class="brand-badge">KS</div>
         <div>
-          <div class="brand-title">VocalArc</div>
+          <div class="brand-title">KaraoScore</div>
           <div class="brand-subtitle">KARAOKE MODE</div>
         </div>
       </div>
@@ -213,8 +345,8 @@ const isolateVocalsDemucs = async () => {
           <p class="subtitle">Prepare original song and instrumental backing sources.</p>
         </div>
         <div class="header-status">
-          <span class="status-dot"></span>
-          <span>Mic ready</span>
+          <span class="status-dot" :class="{ 'recording-dot': isRecording, 'disabled-dot': !canRecord }"></span>
+          <span>{{ isRecording ? 'Recording active' : canRecord ? 'Mic ready' : 'Mic locked' }}</span>
         </div>
       </header>
 
@@ -393,6 +525,47 @@ const isolateVocalsDemucs = async () => {
             <!-- Audio Player -->
             <div v-if="audioUrlInstrumental" class="player-wrap">
               <audio :src="audioUrlInstrumental" controls class="audio-control"></audio>
+            </div>
+          </div>
+
+          <!-- Track C: User Mic Recording -->
+          <div class="panel track-panel" :class="{ 'track-locked': !canRecord }">
+            <div class="track-header">
+              <span class="tag-letter recording-badge" :class="{ 'is-live': isRecording, 'is-locked': !canRecord }">C</span>
+              <div class="track-info">
+                <h3>Vocal recording (Microphone)</h3>
+                <p v-if="canRecord">Record your voice through your mic to test singing and scoring.</p>
+                <p v-else class="lock-msg">
+                  Locked &bull; Requires {{ missingRequirements.join(', ') }}
+                </p>
+              </div>
+              <span v-if="statusRecording" class="track-status" :class="{ 'recording-active': isRecording }">
+                {{ statusRecording }}
+              </span>
+            </div>
+
+            <!-- Record Actions -->
+            <div class="record-action-row">
+              <button
+                class="btn btn-record"
+                :class="{ recording: isRecording }"
+                :disabled="!canRecord"
+                @click="toggleRecording"
+              >
+                <span class="rec-icon"></span>
+                <span>{{ isRecording ? `Stop Recording (${formatTimer(recordingDuration)})` : 'Record from Mic' }}</span>
+              </button>
+
+              <label v-if="audioUrlInstrumental && canRecord" class="backing-toggle">
+                <input v-model="playBackingWhileRecording" type="checkbox" :disabled="isRecording" />
+                <span>Play instrumental while recording</span>
+              </label>
+            </div>
+
+            <!-- Audio Player Preview for Recording -->
+            <div v-if="audioUrlRecording" class="player-wrap">
+              <span class="preview-tag">Take preview:</span>
+              <audio :src="audioUrlRecording" controls class="audio-control"></audio>
             </div>
           </div>
 
@@ -1001,5 +1174,137 @@ const isolateVocalsDemucs = async () => {
   border-left: 1px solid #1f212a;
   padding-left: 18px;
   min-width: 130px;
+}
+
+/* Recording Track Styles */
+.record-action-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.btn-record {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #1c1417;
+  color: #f87171;
+  border: 1px solid #3f1d24;
+  padding: 8px 16px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-record:hover {
+  background: #2a161b;
+  border-color: #5c2430;
+}
+
+.btn-record.recording {
+  background: #7f1d1d;
+  color: #fff;
+  border-color: #b91c1c;
+  animation: rec-pulse 1.5s infinite ease-in-out;
+}
+
+.rec-icon {
+  width: 9px;
+  height: 9px;
+  background: #ef4444;
+  border-radius: 50%;
+  display: inline-block;
+  transition: all 0.2s ease;
+}
+
+.btn-record.recording .rec-icon {
+  background: #fff;
+  border-radius: 2px;
+}
+
+.recording-badge {
+  background: #3b171f !important;
+  color: #f87171 !important;
+}
+
+.recording-badge.is-live {
+  background: #991b1b !important;
+  color: #fff !important;
+  animation: rec-pulse 1.2s infinite ease-in-out;
+}
+
+.recording-active {
+  color: #ef4444 !important;
+  font-weight: 600;
+}
+
+.recording-dot {
+  background: #ef4444 !important;
+  box-shadow: 0 0 8px #ef4444 !important;
+  animation: rec-pulse 1s infinite;
+}
+
+.backing-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: #8b92a0;
+  cursor: pointer;
+  user-select: none;
+}
+
+.backing-toggle input[type="checkbox"] {
+  cursor: pointer;
+  accent-color: #ea580c;
+}
+
+.track-panel.track-locked {
+  opacity: 0.65;
+  border-color: #1a1c24;
+}
+
+.lock-msg {
+  color: #f59e0b !important;
+  font-size: 11.5px !important;
+  font-weight: 500;
+}
+
+.btn-record:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  background: #15161b;
+  border-color: #20222a;
+  color: #6b7280;
+}
+
+.btn-record:disabled:hover {
+  background: #15161b;
+  border-color: #20222a;
+}
+
+.btn-record:disabled .rec-icon {
+  background: #6b7280;
+}
+
+.recording-badge.is-locked {
+  background: #1a1c24 !important;
+  color: #6b7280 !important;
+}
+
+.disabled-dot {
+  background-color: #4b5563 !important;
+}
+
+@keyframes rec-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
 }
 </style>

@@ -11,7 +11,8 @@ const api = {
   isolateVocalsPhase: () => ipcRenderer.invoke('isolate-vocals-phase'),
   isolateVocalsDemucs: (trackType?: string) => ipcRenderer.invoke('isolate-vocals-demucs', trackType),
   checkDemucsEnv: () => ipcRenderer.invoke('check-demucs-env'),
-  installDemucs: () => ipcRenderer.invoke('install-demucs')
+  installDemucs: () => ipcRenderer.invoke('install-demucs'),
+  saveRecording: (buffer: Uint8Array) => ipcRenderer.invoke('save-recording', buffer)
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to
