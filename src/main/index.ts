@@ -1,6 +1,5 @@
-import { app, shell, BrowserWindow, ipcMain, protocol, net } from 'electron'
+import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
-import { pathToFileURL } from 'url'
 import { electronApp, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import ytDlp from 'yt-dlp-exec'
@@ -57,11 +56,11 @@ app.whenReady().then(() => {
         audioFormat: 'mp3',
         output: outputPath,
         ffmpegLocation: ffmpegStatic || undefined,
-        noCheckCertificates: true,
+        noCheckCertificate: true,
         noWarnings: true,
         preferFreeFormats: true,
-        addHeader: ['referer:youtube.com', 'user-agent:Mozilla/5.0'],
-        forceOverwrites: true
+        addHeader: ['referer:youtube.com', 'user-agent:Mozilla/5.0'] as any,
+        noOverwrites: false
       });
 
       console.log('Download complete! Reading file to base64...');
@@ -216,20 +215,20 @@ app.whenReady().then(() => {
   });
 
   // Vocal Isolation IPC (AI Demucs)
-  ipcMain.handle('isolate-vocals-demucs', async () => {
+  ipcMain.handle('isolate-vocals-demucs', async (_, trackType: string = 'normal') => {
     try {
-      const normalPath = join(app.getPath('userData'), `track_normal.mp3`);
+      const inputPath = join(app.getPath('userData'), `track_${trackType}.mp3`);
       const outputDir = join(app.getPath('userData'), 'demucs_output');
       
       const isWindows = process.platform === 'win32';
       const venvDir = join(app.getPath('userData'), 'ai-env');
       const demucsCmd = join(venvDir, isWindows ? 'Scripts' : 'bin', isWindows ? 'demucs.exe' : 'demucs');
       
-      console.log(`Isolating vocals via Demucs AI...`);
+      console.log(`Isolating vocals via Demucs AI from track_${trackType}.mp3...`);
       
       const { spawn } = require('child_process');
       await new Promise<void>((resolve, reject) => {
-        const proc = spawn(demucsCmd, ['--two-stems', 'vocals', '-n', 'htdemucs', '-o', outputDir, normalPath]);
+        const proc = spawn(demucsCmd, ['--two-stems', 'vocals', '-n', 'htdemucs', '-o', outputDir, inputPath]);
         
         let errorOutput = '';
         proc.stderr.on('data', (data: any) => {
@@ -244,8 +243,9 @@ app.whenReady().then(() => {
 
       console.log('AI Isolation complete! Reading file to base64...');
       const fs = require('fs');
-      // Demucs outputs to: outputDir / htdemucs / track_normal / vocals.wav
-      const vocalsPath = join(outputDir, 'htdemucs', 'track_normal', 'vocals.wav');
+      // Demucs outputs to: outputDir / htdemucs / <file_stem> / vocals.wav
+      const trackStem = `track_${trackType}`;
+      const vocalsPath = join(outputDir, 'htdemucs', trackStem, 'vocals.wav');
       
       const buffer = await fs.promises.readFile(vocalsPath);
       const base64Audio = buffer.toString('base64');

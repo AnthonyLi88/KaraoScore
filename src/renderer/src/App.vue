@@ -16,8 +16,8 @@ const statusVocals = ref('')
 const audioUrlVocals = ref('')
 
 // Tabs: 'url' | 'file'
-const tabInstrumental = ref<'url' | 'file'>('url')
-const tabNormal = ref<'url' | 'file'>('file')
+const tabNormal = ref<'url' | 'file'>('url')
+const tabInstrumental = ref<'url' | 'file'>('file')
 
 // Navigation
 const currentNav = ref('import')
@@ -139,7 +139,7 @@ const isolateVocalsDemucs = async () => {
 
   statusVocals.value = 'Isolating vocals via Demucs AI (takes a moment)...'
   audioUrlVocals.value = ''
-  const result = await window.api.isolateVocalsDemucs()
+  const result = await window.api.isolateVocalsDemucs('normal')
   if (result.success && result.audioUrl) {
     statusVocals.value = 'Success (Demucs AI)!'
     audioUrlVocals.value = result.audioUrl
@@ -210,7 +210,7 @@ const isolateVocalsDemucs = async () => {
       <header class="page-header">
         <div>
           <h1>Import song</h1>
-          <p class="subtitle">Prepare separate instrumental and reference vocal sources.</p>
+          <p class="subtitle">Prepare original song and instrumental backing sources.</p>
         </div>
         <div class="header-status">
           <span class="status-dot"></span>
@@ -280,10 +280,68 @@ const isolateVocalsDemucs = async () => {
 
         <!-- Right Column: Audio Sources & Vocal Isolation -->
         <section class="sources-column">
-          <!-- Track A: Instrumental Track -->
+          <!-- Track A: Original Song / Normal Track -->
           <div class="panel track-panel">
             <div class="track-header">
               <span class="tag-letter">A</span>
+              <div class="track-info">
+                <h3>Original song</h3>
+                <p>Full track with vocals. Used for audio reference and vocal isolation.</p>
+              </div>
+              <span v-if="statusNormal" class="track-status">{{ statusNormal }}</span>
+            </div>
+
+            <!-- Tabs: URL vs File -->
+            <div class="tabs">
+              <button
+                class="tab"
+                :class="{ active: tabNormal === 'url' }"
+                @click="tabNormal = 'url'"
+              >
+                YouTube URL
+              </button>
+              <button
+                class="tab"
+                :class="{ active: tabNormal === 'file' }"
+                @click="tabNormal = 'file'"
+              >
+                Local file
+              </button>
+            </div>
+
+            <!-- YouTube URL Input -->
+            <div v-if="tabNormal === 'url'" class="input-action-row">
+              <input
+                v-model="urlNormal"
+                type="text"
+                placeholder="Enter YouTube URL"
+                class="text-input"
+              />
+              <button class="btn btn-secondary" @click="downloadAudio('normal')">
+                Download
+              </button>
+            </div>
+
+            <!-- Local File Input -->
+            <div v-else class="input-action-row">
+              <input
+                type="file"
+                accept="audio/*"
+                class="file-input"
+                @change="(e) => onFileSelected(e, 'normal')"
+              />
+            </div>
+
+            <!-- Audio Player -->
+            <div v-if="audioUrlNormal" class="player-wrap">
+              <audio :src="audioUrlNormal" controls class="audio-control"></audio>
+            </div>
+          </div>
+
+          <!-- Track B: Instrumental Track -->
+          <div class="panel track-panel">
+            <div class="track-header">
+              <span class="tag-letter">B</span>
               <div class="track-info">
                 <h3>Instrumental track</h3>
                 <p>Playback bed the singer performs over. No guide vocal.</p>
@@ -335,64 +393,6 @@ const isolateVocalsDemucs = async () => {
             <!-- Audio Player -->
             <div v-if="audioUrlInstrumental" class="player-wrap">
               <audio :src="audioUrlInstrumental" controls class="audio-control"></audio>
-            </div>
-          </div>
-
-          <!-- Track B: Reference Vocal / Normal Track -->
-          <div class="panel track-panel">
-            <div class="track-header">
-              <span class="tag-letter">B</span>
-              <div class="track-info">
-                <h3>Reference acapella</h3>
-                <p>Guide vocal only. Visible during performance and independently audible.</p>
-              </div>
-              <span v-if="statusNormal" class="track-status">{{ statusNormal }}</span>
-            </div>
-
-            <!-- Tabs: URL vs File -->
-            <div class="tabs">
-              <button
-                class="tab"
-                :class="{ active: tabNormal === 'url' }"
-                @click="tabNormal = 'url'"
-              >
-                YouTube URL
-              </button>
-              <button
-                class="tab"
-                :class="{ active: tabNormal === 'file' }"
-                @click="tabNormal = 'file'"
-              >
-                Local file
-              </button>
-            </div>
-
-            <!-- YouTube URL Input -->
-            <div v-if="tabNormal === 'url'" class="input-action-row">
-              <input
-                v-model="urlNormal"
-                type="text"
-                placeholder="Enter YouTube URL"
-                class="text-input"
-              />
-              <button class="btn btn-secondary" @click="downloadAudio('normal')">
-                Download
-              </button>
-            </div>
-
-            <!-- Local File Input -->
-            <div v-else class="input-action-row">
-              <input
-                type="file"
-                accept="audio/*"
-                class="file-input"
-                @change="(e) => onFileSelected(e, 'normal')"
-              />
-            </div>
-
-            <!-- Audio Player -->
-            <div v-if="audioUrlNormal" class="player-wrap">
-              <audio :src="audioUrlNormal" controls class="audio-control"></audio>
             </div>
           </div>
 

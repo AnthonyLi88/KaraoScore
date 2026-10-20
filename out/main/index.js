@@ -41,11 +41,11 @@ electron.app.whenReady().then(() => {
         audioFormat: "mp3",
         output: outputPath,
         ffmpegLocation: ffmpegStatic || void 0,
-        noCheckCertificates: true,
+        noCheckCertificate: true,
         noWarnings: true,
         preferFreeFormats: true,
         addHeader: ["referer:youtube.com", "user-agent:Mozilla/5.0"],
-        forceOverwrites: true
+        noOverwrites: false
       });
       console.log("Download complete! Reading file to base64...");
       const fs = require("fs");
@@ -168,17 +168,17 @@ electron.app.whenReady().then(() => {
       return { success: false, error: e.message };
     }
   });
-  electron.ipcMain.handle("isolate-vocals-demucs", async () => {
+  electron.ipcMain.handle("isolate-vocals-demucs", async (_, trackType = "normal") => {
     try {
-      const normalPath = path.join(electron.app.getPath("userData"), `track_normal.mp3`);
+      const inputPath = path.join(electron.app.getPath("userData"), `track_${trackType}.mp3`);
       const outputDir = path.join(electron.app.getPath("userData"), "demucs_output");
       const isWindows = process.platform === "win32";
       const venvDir = path.join(electron.app.getPath("userData"), "ai-env");
       const demucsCmd = path.join(venvDir, isWindows ? "Scripts" : "bin", isWindows ? "demucs.exe" : "demucs");
-      console.log(`Isolating vocals via Demucs AI...`);
+      console.log(`Isolating vocals via Demucs AI from track_${trackType}.mp3...`);
       const { spawn } = require("child_process");
       await new Promise((resolve, reject) => {
-        const proc = spawn(demucsCmd, ["--two-stems", "vocals", "-n", "htdemucs", "-o", outputDir, normalPath]);
+        const proc = spawn(demucsCmd, ["--two-stems", "vocals", "-n", "htdemucs", "-o", outputDir, inputPath]);
         let errorOutput = "";
         proc.stderr.on("data", (data) => {
           errorOutput += data.toString();
@@ -190,7 +190,8 @@ electron.app.whenReady().then(() => {
       });
       console.log("AI Isolation complete! Reading file to base64...");
       const fs = require("fs");
-      const vocalsPath = path.join(outputDir, "htdemucs", "track_normal", "vocals.wav");
+      const trackStem = `track_${trackType}`;
+      const vocalsPath = path.join(outputDir, "htdemucs", trackStem, "vocals.wav");
       const buffer = await fs.promises.readFile(vocalsPath);
       const base64Audio = buffer.toString("base64");
       const dataUri = `data:audio/wav;base64,${base64Audio}`;
