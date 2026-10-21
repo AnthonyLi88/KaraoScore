@@ -439,6 +439,52 @@ const isolateVocalsDemucs = async () => {
             </div>
           </div>
         </div>
+
+        <!-- Metrics Row -->
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-icon-wrap flame">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="2">
+                <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
+              </svg>
+            </div>
+            <div class="stat-body">
+              <span class="stat-label">CURRENT STREAK</span>
+              <div class="stat-val">7 days</div>
+              <span class="stat-sub">Personal best: 12</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon-wrap chart">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2">
+                <line x1="18" y1="20" x2="18" y2="10"/>
+                <line x1="12" y1="20" x2="12" y2="4"/>
+                <line x1="6" y1="20" x2="6" y2="14"/>
+              </svg>
+            </div>
+            <div class="stat-body">
+              <span class="stat-label">SESSIONS THIS WEEK</span>
+              <div class="stat-val">4</div>
+              <span class="stat-sub">+1 from last week</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon-wrap target">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <circle cx="12" cy="12" r="6"/>
+                <circle cx="12" cy="12" r="2"/>
+              </svg>
+            </div>
+            <div class="stat-body">
+              <span class="stat-label">BEST PITCH MATCH</span>
+              <div class="stat-val">92%</div>
+              <span class="stat-sub">Midnight City</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- IMPORT VIEW -->
@@ -1116,6 +1162,70 @@ const isolateVocalsDemucs = async () => {
   letter-spacing: 0.06em;
   font-size: 10px;
 }
+
+/* Stats Row */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.stat-card {
+  background: #14151b;
+  border: 1px solid #20222c;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.stat-icon-wrap {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.stat-icon-wrap.flame {
+  background: rgba(234, 88, 12, 0.1);
+}
+
+.stat-icon-wrap.chart {
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.stat-icon-wrap.target {
+  background: rgba(96, 165, 250, 0.1);
+}
+
+.stat-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #6b7280;
+  letter-spacing: 0.06em;
+}
+
+.stat-val {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  margin: 2px 0;
+}
+
+.stat-sub {
+  font-size: 11px;
+  color: #8b92a0;
+}
+
 
 /* Step Bar */
 .steps-bar {
