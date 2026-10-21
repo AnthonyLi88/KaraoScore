@@ -152,7 +152,7 @@ const tabNormal = ref<'url' | 'file'>('url')
 const tabInstrumental = ref<'url' | 'file'>('file')
 
 // Navigation
-const currentNav = ref('import')
+const currentNav = ref<'home' | 'import' | 'library'>('home')
 
 // Song Metadata
 const songTitle = ref('Midnight City')
@@ -338,29 +338,58 @@ const isolateVocalsDemucs = async () => {
 
     <!-- Main Workspace Area -->
     <main class="main-content">
-      <!-- Header -->
-      <header class="page-header">
-        <div>
-          <h1>Import song</h1>
-          <p class="subtitle">Prepare original song and instrumental backing sources.</p>
-        </div>
-        <div class="header-status">
-          <span class="status-dot" :class="{ 'recording-dot': isRecording, 'disabled-dot': !canRecord }"></span>
-          <span>{{ isRecording ? 'Recording active' : canRecord ? 'Mic ready' : 'Mic locked' }}</span>
-        </div>
-      </header>
+      <!-- HOME VIEW -->
+      <div v-if="currentNav === 'home'" class="home-view">
+        <header class="page-header">
+          <div>
+            <h1>Home</h1>
+            <p class="subtitle">Midnight City &bull; M83</p>
+          </div>
+          <div class="header-actions">
+            <div class="header-status">
+              <span class="status-dot"></span>
+              <span>MIC READY</span>
+            </div>
+            <button class="icon-btn" title="Notifications">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+              </svg>
+            </button>
+            <div class="avatar-pill">AK</div>
+          </div>
+        </header>
 
-      <!-- Step Indicator Bar -->
-      <div class="steps-bar">
-        <span class="step-item done">&check; Song details</span>
-        <span class="step-divider">&mdash;</span>
-        <span class="step-item active">02 Source tracks</span>
-        <span class="step-divider">&mdash;</span>
-        <span class="step-item">03 Validate &amp; save</span>
+        <div class="home-placeholder-content">
+          <p class="desc-text">Home page dashboard view loading...</p>
+        </div>
       </div>
 
-      <!-- Two-Column Grid -->
-      <div class="grid-container">
+      <!-- IMPORT VIEW -->
+      <div v-else class="import-view">
+        <!-- Header -->
+        <header class="page-header">
+          <div>
+            <h1>Import song</h1>
+            <p class="subtitle">Prepare original song and instrumental backing sources.</p>
+          </div>
+          <div class="header-status">
+            <span class="status-dot" :class="{ 'recording-dot': isRecording, 'disabled-dot': !canRecord }"></span>
+            <span>{{ isRecording ? 'Recording active' : canRecord ? 'Mic ready' : 'Mic locked' }}</span>
+          </div>
+        </header>
+
+        <!-- Step Indicator Bar -->
+        <div class="steps-bar">
+          <span class="step-item done">&check; Song details</span>
+          <span class="step-divider">&mdash;</span>
+          <span class="step-item active">02 Source tracks</span>
+          <span class="step-divider">&mdash;</span>
+          <span class="step-item">03 Validate &amp; save</span>
+        </div>
+
+        <!-- Two-Column Grid -->
+        <div class="grid-container">
         <!-- Left Column: Song Details -->
         <section class="panel song-panel">
           <div class="panel-title-row">
@@ -614,6 +643,7 @@ const isolateVocalsDemucs = async () => {
             </div>
           </div>
         </section>
+      </div>
       </div>
     </main>
   </div>
