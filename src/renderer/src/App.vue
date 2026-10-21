@@ -360,8 +360,84 @@ const isolateVocalsDemucs = async () => {
           </div>
         </header>
 
-        <div class="home-placeholder-content">
-          <p class="desc-text">Home page dashboard view loading...</p>
+        <!-- Hero Card (Continue Singing) -->
+        <div class="hero-banner">
+          <div class="hero-content">
+            <span class="streak-pill">7 day streak</span>
+            <h2>Ready for the next verse?</h2>
+            <p class="hero-desc">
+              Continue with "Midnight City" or pick any prepared song from your library. Input monitoring is calibrated.
+            </p>
+            <div class="hero-actions">
+              <button class="btn btn-primary btn-hero">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                  <line x1="12" y1="19" x2="12" y2="23"/>
+                  <line x1="8" y1="23" x2="16" y2="23"/>
+                </svg>
+                <span>Start singing</span>
+              </button>
+              <button class="btn btn-secondary btn-hero-secondary" @click="currentNav = 'import'">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="8" y1="6" x2="21" y2="6"/>
+                  <line x1="8" y1="12" x2="21" y2="12"/>
+                  <line x1="8" y1="18" x2="21" y2="18"/>
+                  <line x1="3" y1="6" x2="3.01" y2="6"/>
+                  <line x1="3" y1="12" x2="3.01" y2="12"/>
+                  <line x1="3" y1="18" x2="3.01" y2="18"/>
+                </svg>
+                <span>Choose another song</span>
+              </button>
+              <span class="shortcut-hint">&fnof; &#9166; TO START</span>
+            </div>
+          </div>
+
+          <!-- Continue Set Card Preview -->
+          <div class="hero-preview-card">
+            <div class="preview-header">
+              <div class="preview-badge">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="2.5" stroke-linecap="round">
+                  <path d="M4 12v1M8 8v9M12 4v16M16 9v7M20 11v3" />
+                </svg>
+              </div>
+              <div class="preview-titles">
+                <span class="preview-tag">CONTINUE SET</span>
+                <h4>Midnight City</h4>
+                <span class="preview-sub">M83 &bull; Hurry Up, We're Dreaming</span>
+              </div>
+              <button class="play-target-btn" title="Continue Set">
+                <span class="target-inner-circle"></span>
+              </button>
+            </div>
+
+            <!-- Waveform Graphic -->
+            <div class="waveform-graphic">
+              <div class="wave-bars">
+                <span style="height: 12px"></span>
+                <span style="height: 22px"></span>
+                <span style="height: 16px"></span>
+                <span style="height: 28px"></span>
+                <span style="height: 38px"></span>
+                <span style="height: 24px"></span>
+                <span style="height: 42px"></span>
+                <span style="height: 32px"></span>
+                <span class="playhead-bar"></span>
+                <span style="height: 28px"></span>
+                <span style="height: 18px"></span>
+                <span style="height: 36px"></span>
+                <span style="height: 26px"></span>
+                <span style="height: 32px"></span>
+                <span style="height: 20px"></span>
+                <span style="height: 14px"></span>
+              </div>
+            </div>
+
+            <div class="preview-footer">
+              <span class="time-readout">01:22 / 04:03</span>
+              <span class="tracks-ready-tag">2/2 TRACKS READY</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -836,6 +912,209 @@ const isolateVocalsDemucs = async () => {
   height: 7px;
   border-radius: 50%;
   background-color: #ea580c;
+}
+
+/* Home View Styles */
+.home-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.hero-banner {
+  background: #14151b;
+  border: 1px solid #20222c;
+  border-radius: 8px;
+  padding: 22px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+}
+
+.hero-content {
+  flex: 1;
+}
+
+.streak-pill {
+  font-size: 11px;
+  font-weight: 700;
+  color: #ea580c;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+  display: inline-block;
+}
+
+.hero-content h2 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 8px 0;
+}
+
+.hero-desc {
+  font-size: 13px;
+  color: #8b92a0;
+  margin: 0 0 18px 0;
+  max-width: 480px;
+  line-height: 1.5;
+}
+
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn-hero {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+}
+
+.btn-hero-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+}
+
+.shortcut-hint {
+  font-size: 11px;
+  color: #555966;
+  font-family: monospace;
+  letter-spacing: 0.05em;
+  margin-left: 4px;
+}
+
+.hero-preview-card {
+  background: #0f1014;
+  border: 1px solid #1e2029;
+  border-radius: 8px;
+  padding: 16px;
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.preview-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.preview-badge {
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  background: #1c1514;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.preview-titles {
+  flex: 1;
+}
+
+.preview-tag {
+  font-size: 9px;
+  color: #ea580c;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.preview-titles h4 {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 2px 0;
+}
+
+.preview-sub {
+  font-size: 11px;
+  color: #8b92a0;
+  display: block;
+}
+
+.play-target-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #ea580c;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.play-target-btn:hover {
+  transform: scale(1.05);
+}
+
+.target-inner-circle {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #14151b;
+}
+
+.waveform-graphic {
+  background: #0b0c0f;
+  border-radius: 4px;
+  padding: 8px 12px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+}
+
+.wave-bars {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 100%;
+}
+
+.wave-bars span {
+  width: 3px;
+  background: #252834;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.wave-bars .playhead-bar {
+  width: 2px;
+  height: 100%;
+  background: #ea580c;
+}
+
+.preview-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+}
+
+.time-readout {
+  color: #6b7280;
+  font-family: monospace;
+}
+
+.tracks-ready-tag {
+  color: #ea580c;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  font-size: 10px;
 }
 
 /* Step Bar */
