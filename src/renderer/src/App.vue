@@ -485,6 +485,88 @@ const isolateVocalsDemucs = async () => {
             </div>
           </div>
         </div>
+
+        <!-- Bottom 2-Column Section -->
+        <div class="home-bottom-grid">
+          <!-- Recent Songs Panel -->
+          <div class="panel recent-songs-panel">
+            <div class="panel-header-row">
+              <div>
+                <h3>Recent songs</h3>
+                <p class="panel-sub">Jump back into your latest sessions</p>
+              </div>
+              <a class="view-library-link" @click="currentNav = 'library'">View library &rarr;</a>
+            </div>
+
+            <div class="recent-list">
+              <div class="recent-item">
+                <div class="song-disc-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 12v1M8 8v9M12 4v16M16 9v7M20 11v3" />
+                  </svg>
+                </div>
+                <div class="song-details">
+                  <span class="song-name">Midnight City</span>
+                  <span class="song-meta">M83 &bull; 04:03 &bull; Synth-pop</span>
+                </div>
+                <span class="song-status ready">&bull; Ready</span>
+                <div class="score-display">
+                  <span class="score-number">92</span>
+                  <span class="score-label">SCORE</span>
+                </div>
+                <button class="song-play-btn" title="Play">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                  </svg>
+                </button>
+              </div>
+
+              <div class="recent-item">
+                <div class="song-disc-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 12v1M8 8v9M12 4v16M16 9v7M20 11v3" />
+                  </svg>
+                </div>
+                <div class="song-details">
+                  <span class="song-name">Dreams</span>
+                  <span class="song-meta">Fleetwood Mac &bull; 04:17 &bull; Rock</span>
+                </div>
+                <span class="song-status ready">&bull; Ready</span>
+                <div class="score-display">
+                  <span class="score-number">88</span>
+                  <span class="score-label">SCORE</span>
+                </div>
+                <button class="song-play-btn" title="Play">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                  </svg>
+                </button>
+              </div>
+
+              <div class="recent-item">
+                <div class="song-disc-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 12v1M8 8v9M12 4v16M16 9v7M20 11v3" />
+                  </svg>
+                </div>
+                <div class="song-details">
+                  <span class="song-name">Good Luck, Babe!</span>
+                  <span class="song-meta">Chappell Roan &bull; 03:38 &bull; Pop</span>
+                </div>
+                <span class="song-status needs-vocal">&bull; Needs vocal</span>
+                <div class="score-display">
+                  <span class="score-number">-</span>
+                  <span class="score-label">SCORE</span>
+                </div>
+                <button class="song-play-btn" title="Play">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- IMPORT VIEW -->
@@ -1225,6 +1307,153 @@ const isolateVocalsDemucs = async () => {
   font-size: 11px;
   color: #8b92a0;
 }
+
+/* Home Bottom Grid */
+.home-bottom-grid {
+  display: flex;
+  gap: 16px;
+  align-items: stretch;
+}
+
+.recent-songs-panel {
+  flex: 1.6;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.panel-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.panel-header-row h3 {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 2px 0;
+}
+
+.panel-sub {
+  font-size: 12px;
+  color: #8b92a0;
+  margin: 0;
+}
+
+.view-library-link {
+  font-size: 12px;
+  color: #ea580c;
+  cursor: pointer;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.view-library-link:hover {
+  text-decoration: underline;
+}
+
+.recent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.recent-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #0f1014;
+  border: 1px solid #1e2029;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.recent-item:hover {
+  border-color: #2b2e3c;
+}
+
+.song-disc-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: #181922;
+  color: #8b92a0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.song-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.song-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.song-meta {
+  font-size: 11.5px;
+  color: #8b92a0;
+}
+
+.song-status {
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
+.song-status.ready {
+  color: #ea580c;
+}
+
+.song-status.needs-vocal {
+  color: #f87171;
+}
+
+.score-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 44px;
+}
+
+.score-number {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.score-label {
+  font-size: 8.5px;
+  color: #6b7280;
+  letter-spacing: 0.08em;
+}
+
+.song-play-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid #282a36;
+  color: #9ca3af;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.song-play-btn:hover {
+  border-color: #ea580c;
+  color: #ea580c;
+}
+
 
 
 /* Step Bar */
