@@ -566,6 +566,41 @@ const isolateVocalsDemucs = async () => {
               </div>
             </div>
           </div>
+
+          <!-- Weekly Target Panel -->
+          <div class="panel weekly-target-panel">
+            <div class="panel-header-row target-header">
+              <h3>Weekly target</h3>
+              <span class="target-fraction">4 / 5</span>
+            </div>
+
+            <!-- Radial Gauge -->
+            <div class="radial-gauge-container">
+              <svg class="gauge-svg" width="100" height="100" viewBox="0 0 100 100">
+                <circle class="gauge-bg" cx="50" cy="50" r="40" />
+                <circle class="gauge-bar" cx="50" cy="50" r="40" stroke-dasharray="251.2" stroke-dashoffset="50.24" />
+              </svg>
+              <div class="gauge-number">80%</div>
+            </div>
+
+            <p class="target-desc">1 more session to hit your personal best. Keep the momentum going!</p>
+
+            <!-- Quick Action Card -->
+            <div class="import-quick-card" @click="currentNav = 'import'">
+              <div class="import-quick-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+              </div>
+              <div class="import-quick-text">
+                <span class="import-quick-title">Import a new song</span>
+                <span class="import-quick-sub">Paste YouTube URL or drop local audio</span>
+              </div>
+              <span class="import-arrow">&rarr;</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1453,6 +1488,129 @@ const isolateVocalsDemucs = async () => {
   border-color: #ea580c;
   color: #ea580c;
 }
+
+/* Weekly Target Panel */
+.weekly-target-panel {
+  width: 280px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  text-align: center;
+}
+
+.target-header {
+  width: 100%;
+}
+
+.target-fraction {
+  font-size: 12px;
+  color: #8b92a0;
+  font-family: monospace;
+}
+
+.radial-gauge-container {
+  position: relative;
+  width: 110px;
+  height: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 6px 0;
+}
+
+.gauge-svg {
+  transform: rotate(-90deg);
+}
+
+.gauge-bg {
+  fill: none;
+  stroke: #1e2029;
+  stroke-width: 8;
+}
+
+.gauge-bar {
+  fill: none;
+  stroke: #ea580c;
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+
+.gauge-number {
+  position: absolute;
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.target-desc {
+  font-size: 12px;
+  color: #8b92a0;
+  line-height: 1.4;
+  margin: 0;
+  max-width: 220px;
+}
+
+.import-quick-card {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: #0f1014;
+  border: 1px dashed #282a38;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+}
+
+.import-quick-card:hover {
+  border-color: #ea580c;
+  background: #141113;
+}
+
+.import-quick-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: rgba(234, 88, 12, 0.1);
+  color: #ea580c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.import-quick-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.import-quick-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.import-quick-sub {
+  font-size: 10.5px;
+  color: #8b92a0;
+}
+
+.import-arrow {
+  color: #8b92a0;
+  font-size: 14px;
+  transition: transform 0.15s ease;
+}
+
+.import-quick-card:hover .import-arrow {
+  color: #ea580c;
+  transform: translateX(2px);
+}
+
 
 
 
