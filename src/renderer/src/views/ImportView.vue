@@ -470,48 +470,7 @@ const isolateVocalsDemucs = async () => {
           </div>
         </div>
 
-        <!-- Track C: User Mic Recording -->
-        <div class="panel track-panel" :class="{ 'track-locked': !canRecord }">
-          <div class="track-header">
-            <span class="tag-letter recording-badge" :class="{ 'is-live': isRecording, 'is-locked': !canRecord }">C</span>
-            <div class="track-info">
-              <h3>Vocal recording (Microphone)</h3>
-              <p v-if="canRecord">Record your voice through your mic to test singing and scoring.</p>
-              <p v-else class="lock-msg">
-                Locked &bull; Requires {{ missingRequirements.join(', ') }}
-              </p>
-            </div>
-            <span v-if="statusRecording" class="track-status" :class="{ 'recording-active': isRecording }">
-              {{ statusRecording }}
-            </span>
-          </div>
-
-          <!-- Record Actions -->
-          <div class="record-action-row">
-            <button
-              class="btn btn-record"
-              :class="{ recording: isRecording }"
-              :disabled="!canRecord"
-              @click="toggleRecording"
-            >
-              <span class="rec-icon"></span>
-              <span>{{ isRecording ? `Stop Recording (${formatTimer(recordingDuration)})` : 'Record from Mic' }}</span>
-            </button>
-
-            <label v-if="audioUrlInstrumental && canRecord" class="backing-toggle">
-              <input v-model="playBackingWhileRecording" type="checkbox" :disabled="isRecording" />
-              <span>Play instrumental while recording</span>
-            </label>
-          </div>
-
-          <!-- Audio Player Preview for Recording -->
-          <div v-if="audioUrlRecording" class="player-wrap">
-            <span class="preview-tag">Take preview:</span>
-            <audio :src="audioUrlRecording" controls class="audio-control"></audio>
-          </div>
-        </div>
-
-        <!-- Bottom Card: Vocal Isolation & Actions -->
+        <!-- Vocal Isolation & Actions -->
         <div class="panel actions-panel">
           <div class="actions-left">
             <h3>Vocal Isolation &amp; Validation</h3>
@@ -553,6 +512,47 @@ const isolateVocalsDemucs = async () => {
           <div class="actions-right">
             <button class="btn btn-primary">Save to library</button>
             <button class="btn btn-secondary">Save as draft</button>
+          </div>
+        </div>
+
+        <!-- Track C: User Mic Recording -->
+        <div class="panel track-panel" :class="{ 'track-locked': !canRecord }">
+          <div class="track-header">
+            <span class="tag-letter recording-badge" :class="{ 'is-live': isRecording, 'is-locked': !canRecord }">C</span>
+            <div class="track-info">
+              <h3>Vocal recording (Microphone)</h3>
+              <p v-if="canRecord">Record your voice through your mic to test singing and scoring.</p>
+              <p v-else class="lock-msg">
+                Locked &bull; Requires {{ missingRequirements.join(', ') }}
+              </p>
+            </div>
+            <span v-if="statusRecording" class="track-status" :class="{ 'recording-active': isRecording }">
+              {{ statusRecording }}
+            </span>
+          </div>
+
+          <!-- Record Actions -->
+          <div class="record-action-row">
+            <button
+              class="btn btn-record"
+              :class="{ recording: isRecording }"
+              :disabled="!canRecord"
+              @click="toggleRecording"
+            >
+              <span class="rec-icon"></span>
+              <span>{{ isRecording ? `Stop Recording (${formatTimer(recordingDuration)})` : 'Record from Mic' }}</span>
+            </button>
+
+            <label v-if="audioUrlInstrumental && canRecord" class="backing-toggle">
+              <input v-model="playBackingWhileRecording" type="checkbox" :disabled="isRecording" />
+              <span>Play instrumental while recording</span>
+            </label>
+          </div>
+
+          <!-- Audio Player Preview for Recording -->
+          <div v-if="audioUrlRecording" class="player-wrap">
+            <span class="preview-tag">Take preview:</span>
+            <audio :src="audioUrlRecording" controls class="audio-control"></audio>
           </div>
         </div>
       </section>
