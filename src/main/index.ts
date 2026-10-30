@@ -275,15 +275,29 @@ app.whenReady().then(() => {
 
       console.log('AI Isolation complete! Reading file to base64...');
       const fs = require('fs');
-      // Demucs outputs to: outputDir / htdemucs / <file_stem> / vocals.wav
+      // Demucs outputs to: outputDir / htdemucs / <file_stem> / vocals.wav & no_vocals.wav
       const trackStem = `track_${trackType}`;
       const vocalsPath = join(outputDir, 'htdemucs', trackStem, 'vocals.wav');
+      const noVocalsPath = join(outputDir, 'htdemucs', trackStem, 'no_vocals.wav');
       
       const buffer = await fs.promises.readFile(vocalsPath);
       const base64Audio = buffer.toString('base64');
       const dataUri = `data:audio/wav;base64,${base64Audio}`;
 
-      return { success: true, audioUrl: dataUri };
+      let instrumentalUri: string | undefined = undefined;
+      if (fs.existsSync(noVocalsPath)) {
+        // Also save/convert to track_instrumental.mp3 for consistency across playback and recording
+        const instrumentalMp3 = join(app.getPath('userData'), 'track_instrumental.mp3');
+        await new Promise<void>((resolveConvert) => {
+          const cvt = spawn(ffmpegStatic, ['-y', '-i', noVocalsPath, instrumentalMp3]);
+          cvt.on('close', () => resolveConvert());
+        });
+
+        const noVocalsBuffer = await fs.promises.readFile(noVocalsPath);
+        instrumentalUri = `data:audio/wav;base64,${noVocalsBuffer.toString('base64')}`;
+      }
+
+      return { success: true, audioUrl: dataUri, instrumentalUrl: instrumentalUri };
     } catch (error: any) {
       console.error('Demucs error:', error);
       return { success: false, error: error.message };

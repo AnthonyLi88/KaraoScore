@@ -21,7 +21,8 @@ const urlInstrumental = ref('')
 const statusInstrumental = ref('')
 const audioUrlInstrumental = ref('')
 const instrumentalFileName = ref('')
-const tabInstrumental = ref<'url' | 'file'>('file')
+const tabInstrumental = ref<'url' | 'file' | 'demucs'>('file')
+const isExtractingDemucs = ref(false)
 
 // Track C: Microphone Recording States
 const isRecording = ref(false)
@@ -268,12 +269,62 @@ const isolateVocalsDemucs = async () => {
 
   statusVocals.value = 'Isolating vocals via Demucs AI (takes a moment)...'
   audioUrlVocals.value = ''
-  const result = await window.api.isolateVocalsDemucs()
+  const result = await window.api.isolateVocalsDemucs('normal')
   if (result.success && result.audioUrl) {
     statusVocals.value = 'Success (Demucs AI)!'
     audioUrlVocals.value = result.audioUrl
+
+    // If Track B is set to Demucs AI or has no instrumental yet, populate it from Demucs output!
+    if ((tabInstrumental.value === 'demucs' || !audioUrlInstrumental.value) && result.instrumentalUrl) {
+      statusInstrumental.value = 'Ready (Demucs AI)'
+      audioUrlInstrumental.value = result.instrumentalUrl
+      instrumentalFileName.value = 'Demucs Instrumental (AI)'
+    }
   } else {
     statusVocals.value = `Error: ${result.error}`
+  }
+}
+
+const extractInstrumentalDemucs = async () => {
+  if (!audioUrlNormal.value) return
+
+  statusInstrumental.value = 'Checking AI dependencies...'
+  const envCheck = await window.api.checkDemucsEnv()
+
+  if (envCheck.status === 'missing_python') {
+    statusInstrumental.value = 'Error: Python 3 is required!'
+    alert('Python 3 is required to use Demucs AI. Please install it from python.org, then try again.')
+    return
+  }
+
+  if (envCheck.status === 'needs_install') {
+    statusInstrumental.value = 'Installing AI models (please wait)...'
+    const installResult = await window.api.installDemucs()
+    if (!installResult.success) {
+      statusInstrumental.value = `Install Error: ${installResult.error}`
+      return
+    }
+  }
+
+  isExtractingDemucs.value = true
+  statusInstrumental.value = 'Separating instrumental via Demucs AI (takes a moment)...'
+  audioUrlInstrumental.value = ''
+
+  const result = await window.api.isolateVocalsDemucs('normal')
+  isExtractingDemucs.value = false
+
+  if (result.success && result.instrumentalUrl) {
+    statusInstrumental.value = 'Ready (Demucs AI)'
+    audioUrlInstrumental.value = result.instrumentalUrl
+    instrumentalFileName.value = 'Demucs Instrumental (AI)'
+
+    // Demucs separates both vocals and backing track at the same time
+    if (!audioUrlVocals.value && result.audioUrl) {
+      audioUrlVocals.value = result.audioUrl
+      statusVocals.value = 'Success (Demucs AI)!'
+    }
+  } else {
+    statusInstrumental.value = `Error: ${result.error || 'Failed to extract instrumental'}`
   }
 }
 </script>
@@ -423,7 +474,7 @@ const isolateVocalsDemucs = async () => {
             <span v-if="statusInstrumental" class="track-status">{{ statusInstrumental }}</span>
           </div>
 
-          <!-- Tabs: URL vs File -->
+          <!-- Tabs: URL vs File vs Demucs AI -->
           <div class="tabs">
             <button
               class="tab"
@@ -438,6 +489,13 @@ const isolateVocalsDemucs = async () => {
               @click="tabInstrumental = 'file'"
             >
               Local file
+            </button>
+            <button
+              class="tab"
+              :class="{ active: tabInstrumental === 'demucs' }"
+              @click="tabInstrumental = 'demucs'"
+            >
+              Demucs AI
             </button>
           </div>
 
@@ -455,7 +513,7 @@ const isolateVocalsDemucs = async () => {
           </div>
 
           <!-- Local File Input -->
-          <div v-else class="input-action-row">
+          <div v-else-if="tabInstrumental === 'file'" class="input-action-row">
             <input
               type="file"
               accept="audio/*"
@@ -464,8 +522,32 @@ const isolateVocalsDemucs = async () => {
             />
           </div>
 
+          <!-- Demucs AI Extraction Option -->
+          <div v-else-if="tabInstrumental === 'demucs'" class="demucs-track-action">
+            <div v-if="!audioUrlNormal" class="demucs-hint">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <span>Load <strong>Track A (Original song)</strong> first to extract the instrumental using Demucs AI.</span>
+            </div>
+            <div v-else class="demucs-ready-row">
+              <button
+                class="btn btn-isolate demucs"
+                :disabled="isExtractingDemucs"
+                @click="extractInstrumentalDemucs"
+              >
+                <span v-if="isExtractingDemucs">Extracting Instrumental (AI)...</span>
+                <span v-else>{{ audioUrlInstrumental && instrumentalFileName === 'Demucs Instrumental (AI)' ? 'Re-extract Instrumental with Demucs' : 'Separate Instrumental with Demucs' }}</span>
+              </button>
+              <span class="demucs-note">Uses AI to separate backing music from Track A</span>
+            </div>
+          </div>
+
           <!-- Audio Player -->
           <div v-if="audioUrlInstrumental" class="player-wrap">
+            <span v-if="tabInstrumental === 'demucs'" class="preview-tag">Demucs Instrumental:</span>
             <audio :src="audioUrlInstrumental" controls class="audio-control"></audio>
           </div>
         </div>
@@ -961,6 +1043,38 @@ const isolateVocalsDemucs = async () => {
 
 .btn-isolate.demucs:hover:not(:disabled) {
   background: #331e17;
+}
+
+/* Demucs Option inside Track B */
+.demucs-track-action {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.demucs-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #f59e0b;
+}
+
+.demucs-ready-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.demucs-note {
+  font-size: 11.5px;
+  color: #8b92a0;
 }
 
 .status-msg {

@@ -217,10 +217,21 @@ electron.app.whenReady().then(() => {
       const fs = require("fs");
       const trackStem = `track_${trackType}`;
       const vocalsPath = path.join(outputDir, "htdemucs", trackStem, "vocals.wav");
+      const noVocalsPath = path.join(outputDir, "htdemucs", trackStem, "no_vocals.wav");
       const buffer = await fs.promises.readFile(vocalsPath);
       const base64Audio = buffer.toString("base64");
       const dataUri = `data:audio/wav;base64,${base64Audio}`;
-      return { success: true, audioUrl: dataUri };
+      let instrumentalUri = void 0;
+      if (fs.existsSync(noVocalsPath)) {
+        const instrumentalMp3 = path.join(electron.app.getPath("userData"), "track_instrumental.mp3");
+        await new Promise((resolveConvert) => {
+          const cvt = spawn(ffmpegStatic, ["-y", "-i", noVocalsPath, instrumentalMp3]);
+          cvt.on("close", () => resolveConvert());
+        });
+        const noVocalsBuffer = await fs.promises.readFile(noVocalsPath);
+        instrumentalUri = `data:audio/wav;base64,${noVocalsBuffer.toString("base64")}`;
+      }
+      return { success: true, audioUrl: dataUri, instrumentalUrl: instrumentalUri };
     } catch (error) {
       console.error("Demucs error:", error);
       return { success: false, error: error.message };
