@@ -34,7 +34,6 @@ const emit = defineEmits<{
     <!-- Hero Card (Continue Singing) -->
     <div class="hero-banner">
       <div class="hero-content">
-        <span class="streak-pill">7 day streak</span>
         <h2>Ready for the next verse?</h2>
         <p class="hero-desc">
           Continue with "{{ songTitle }}" or pick any prepared song from your library. Input monitoring is calibrated.
@@ -60,7 +59,6 @@ const emit = defineEmits<{
             </svg>
             <span>Choose another song</span>
           </button>
-          <span class="shortcut-hint">&fnof; &#9166; TO START</span>
         </div>
       </div>
 
@@ -113,87 +111,8 @@ const emit = defineEmits<{
 
     <!-- Bottom 2-Column Section -->
     <div class="home-bottom-grid">
-      <!-- Recent Songs Panel -->
-      <div class="panel recent-songs-panel">
-        <div class="panel-header-row">
-          <div>
-            <h3>Recent songs</h3>
-            <p class="panel-sub">Jump back into your latest sessions</p>
-          </div>
-          <a class="view-library-link" @click="emit('navigate', 'library')">View library &rarr;</a>
-        </div>
-
-        <div class="recent-list">
-          <div class="recent-item">
-            <div class="song-disc-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M4 12v1M8 8v9M12 4v16M16 9v7M20 11v3" />
-              </svg>
-            </div>
-            <div class="song-details">
-              <span class="song-name">Midnight City</span>
-              <span class="song-meta">M83 &bull; 04:03 &bull; Synth-pop</span>
-            </div>
-            <span class="song-status ready">&bull; Ready</span>
-            <div class="score-display">
-              <span class="score-number">92</span>
-              <span class="score-label">SCORE</span>
-            </div>
-            <button class="song-play-btn" title="Play">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                <polygon points="5 3 19 12 5 21 5 3"/>
-              </svg>
-            </button>
-          </div>
-
-          <div class="recent-item">
-            <div class="song-disc-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M4 12v1M8 8v9M12 4v16M16 9v7M20 11v3" />
-              </svg>
-            </div>
-            <div class="song-details">
-              <span class="song-name">Dreams</span>
-              <span class="song-meta">Fleetwood Mac &bull; 04:17 &bull; Rock</span>
-            </div>
-            <span class="song-status ready">&bull; Ready</span>
-            <div class="score-display">
-              <span class="score-number">88</span>
-              <span class="score-label">SCORE</span>
-            </div>
-            <button class="song-play-btn" title="Play">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                <polygon points="5 3 19 12 5 21 5 3"/>
-              </svg>
-            </button>
-          </div>
-
-          <div class="recent-item">
-            <div class="song-disc-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M4 12v1M8 8v9M12 4v16M16 9v7M20 11v3" />
-              </svg>
-            </div>
-            <div class="song-details">
-              <span class="song-name">Good Luck, Babe!</span>
-              <span class="song-meta">Chappell Roan &bull; 03:38 &bull; Pop</span>
-            </div>
-            <span class="song-status needs-vocal">&bull; Needs vocal</span>
-            <div class="score-display">
-              <span class="score-number">-</span>
-              <span class="score-label">SCORE</span>
-            </div>
-            <button class="song-play-btn" title="Play">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                <polygon points="5 3 19 12 5 21 5 3"/>
-              </svg>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Weekly Target Panel -->
-      <div class="panel quick-import-panel">
+      <!-- Quick Import Action Card -->
+      <div class="panel quick-import-panel full-width">
         <div class="import-quick-card" @click="emit('navigate', 'import')">
           <div class="import-quick-icon">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -738,7 +657,7 @@ const emit = defineEmits<{
 }
 
 .quick-import-panel {
-  width: 280px;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
