@@ -24,11 +24,13 @@ const instrumentalFileName = ref('')
 const tabInstrumental = ref<'url' | 'file' | 'demucs'>('file')
 const isExtractingDemucs = ref(false)
 
-// Track C: Microphone Recording States
+// Track C: Microphone Recording / Singer Input States
 const isRecording = ref(false)
 const recordingDuration = ref(0)
 const statusRecording = ref('')
 const audioUrlRecording = ref('')
+const recordingFileName = ref('')
+const tabSinger = ref<'record' | 'file'>('record')
 const playBackingWhileRecording = ref(true)
 
 // Vocal Isolation States
@@ -160,15 +162,17 @@ const toggleRecording = () => {
 }
 
 // File Selection Handler
-const onFileSelected = (event: Event, type: 'normal' | 'instrumental') => {
+const onFileSelected = (event: Event, type: 'normal' | 'instrumental' | 'recording') => {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
   if (!file) return
 
   if (type === 'normal') {
     normalFileName.value = file.name
-  } else {
+  } else if (type === 'instrumental') {
     instrumentalFileName.value = file.name
+  } else if (type === 'recording') {
+    recordingFileName.value = file.name
   }
   handleFileUpload(event, type)
 }
@@ -204,7 +208,7 @@ const downloadAudio = async (type: 'normal' | 'instrumental'): Promise<void> => 
   }
 }
 
-const handleFileUpload = async (event: Event, type: 'normal' | 'instrumental') => {
+const handleFileUpload = async (event: Event, type: 'normal' | 'instrumental' | 'recording') => {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
   if (!file) return
@@ -212,9 +216,12 @@ const handleFileUpload = async (event: Event, type: 'normal' | 'instrumental') =
   if (type === 'normal') {
     statusNormal.value = `Normalizing: ${file.name}...`
     audioUrlNormal.value = ''
-  } else {
+  } else if (type === 'instrumental') {
     statusInstrumental.value = `Normalizing: ${file.name}...`
     audioUrlInstrumental.value = ''
+  } else if (type === 'recording') {
+    statusRecording.value = `Loading: ${file.name}...`
+    audioUrlRecording.value = ''
   }
 
   const result = await window.api.normalizeAudio(file, type)
@@ -226,12 +233,19 @@ const handleFileUpload = async (event: Event, type: 'normal' | 'instrumental') =
     } else {
       statusNormal.value = `Error: ${result.error}`
     }
-  } else {
+  } else if (type === 'instrumental') {
     if (result.success && result.audioUrl) {
       statusInstrumental.value = 'Ready'
       audioUrlInstrumental.value = result.audioUrl
     } else {
       statusInstrumental.value = `Error: ${result.error}`
+    }
+  } else if (type === 'recording') {
+    if (result.success && result.audioUrl) {
+      statusRecording.value = `Ready (${file.name})`
+      audioUrlRecording.value = result.audioUrl
+    } else {
+      statusRecording.value = `Error: ${result.error}`
     }
   }
 }
@@ -597,13 +611,13 @@ const extractInstrumentalDemucs = async () => {
           </div>
         </div>
 
-        <!-- Track C: User Mic Recording -->
+        <!-- Track C: Singer's Vocal Input -->
         <div class="panel track-panel" :class="{ 'track-locked': !canRecord }">
           <div class="track-header">
             <span class="tag-letter recording-badge" :class="{ 'is-live': isRecording, 'is-locked': !canRecord }">C</span>
             <div class="track-info">
-              <h3>Vocal recording (Microphone)</h3>
-              <p v-if="canRecord">Record your voice through your mic to test singing and scoring.</p>
+              <h3>Singer's vocal input</h3>
+              <p v-if="canRecord">Record through your mic or upload an audio file to test singing and scoring.</p>
               <p v-else class="lock-msg">
                 Locked &bull; Requires {{ missingRequirements.join(', ') }}
               </p>
@@ -613,8 +627,28 @@ const extractInstrumentalDemucs = async () => {
             </span>
           </div>
 
-          <!-- Record Actions -->
-          <div class="record-action-row">
+          <!-- Tabs: Record from mic vs Local file -->
+          <div class="tabs">
+            <button
+              class="tab"
+              :class="{ active: tabSinger === 'record' }"
+              :disabled="!canRecord"
+              @click="tabSinger = 'record'"
+            >
+              Record from mic
+            </button>
+            <button
+              class="tab"
+              :class="{ active: tabSinger === 'file' }"
+              :disabled="!canRecord"
+              @click="tabSinger = 'file'"
+            >
+              Local file
+            </button>
+          </div>
+
+          <!-- Record Tab Content -->
+          <div v-if="tabSinger === 'record'" class="record-action-row">
             <button
               class="btn btn-record"
               :class="{ recording: isRecording }"
@@ -631,9 +665,20 @@ const extractInstrumentalDemucs = async () => {
             </label>
           </div>
 
-          <!-- Audio Player Preview for Recording -->
+          <!-- Local File Tab Content -->
+          <div v-else class="input-action-row">
+            <input
+              type="file"
+              accept="audio/*"
+              class="file-input"
+              :disabled="!canRecord"
+              @change="(e) => onFileSelected(e, 'recording')"
+            />
+          </div>
+
+          <!-- Audio Player Preview for Recording or Uploaded Audio -->
           <div v-if="audioUrlRecording" class="player-wrap">
-            <span class="preview-tag">Take preview:</span>
+            <span class="preview-tag">{{ tabSinger === 'file' ? 'Singer audio preview:' : 'Take preview:' }}</span>
             <audio :src="audioUrlRecording" controls class="audio-control"></audio>
           </div>
         </div>
@@ -937,6 +982,11 @@ const extractInstrumentalDemucs = async () => {
 .tab.active {
   background: #1e202a;
   color: #fff;
+}
+
+.tab:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .input-action-row {
