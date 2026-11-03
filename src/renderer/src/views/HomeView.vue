@@ -28,14 +28,7 @@ const emit = defineEmits<{
           <span class="status-dot"></span>
           <span>MIC READY</span>
         </div>
-        <button class="icon-btn" title="Notifications">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-          </svg>
-        </button>
-        <div class="avatar-pill">AK</div>
-      </div>
+        </div>
     </header>
 
     <!-- Hero Card (Continue Singing) -->
@@ -114,52 +107,6 @@ const emit = defineEmits<{
         <div class="preview-footer">
           <span class="time-readout">01:22 / 04:03</span>
           <span class="tracks-ready-tag">2/2 TRACKS READY</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Metrics Row -->
-    <div class="stats-row">
-      <div class="stat-card">
-        <div class="stat-icon-wrap flame">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="2">
-            <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
-          </svg>
-        </div>
-        <div class="stat-body">
-          <span class="stat-label">CURRENT STREAK</span>
-          <div class="stat-val">7 days</div>
-          <span class="stat-sub">Personal best: 12</span>
-        </div>
-      </div>
-
-      <div class="stat-card">
-        <div class="stat-icon-wrap chart">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2">
-            <line x1="18" y1="20" x2="18" y2="10"/>
-            <line x1="12" y1="20" x2="12" y2="4"/>
-            <line x1="6" y1="20" x2="6" y2="14"/>
-          </svg>
-        </div>
-        <div class="stat-body">
-          <span class="stat-label">SESSIONS THIS WEEK</span>
-          <div class="stat-val">4</div>
-          <span class="stat-sub">+1 from last week</span>
-        </div>
-      </div>
-
-      <div class="stat-card">
-        <div class="stat-icon-wrap target">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/>
-            <circle cx="12" cy="12" r="6"/>
-            <circle cx="12" cy="12" r="2"/>
-          </svg>
-        </div>
-        <div class="stat-body">
-          <span class="stat-label">BEST PITCH MATCH</span>
-          <div class="stat-val">92%</div>
-          <span class="stat-sub">{{ songTitle }}</span>
         </div>
       </div>
     </div>
@@ -246,22 +193,7 @@ const emit = defineEmits<{
       </div>
 
       <!-- Weekly Target Panel -->
-      <div class="panel weekly-target-panel">
-        <div class="panel-header-row target-header">
-          <h3>Weekly target</h3>
-          <span class="target-fraction">4 / 5</span>
-        </div>
-
-        <div class="radial-gauge-container">
-          <svg width="110" height="110" viewBox="0 0 100 100" class="gauge-svg">
-            <circle cx="50" cy="50" r="38" class="gauge-bg" />
-            <circle cx="50" cy="50" r="38" class="gauge-bar" stroke-dasharray="238.76" stroke-dashoffset="47.75" />
-          </svg>
-          <div class="gauge-number">80%</div>
-        </div>
-
-        <p class="target-desc">One more complete performance unlocks your 5-session badge.</p>
-
+      <div class="panel quick-import-panel">
         <div class="import-quick-card" @click="emit('navigate', 'import')">
           <div class="import-quick-icon">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -805,67 +737,11 @@ const emit = defineEmits<{
   color: #ea580c;
 }
 
-/* Weekly Target Panel */
-.weekly-target-panel {
+.quick-import-panel {
   width: 280px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  text-align: center;
-}
-
-.target-header {
-  width: 100%;
-}
-
-.target-fraction {
-  font-size: 12px;
-  color: #8b92a0;
-  font-family: monospace;
-}
-
-.radial-gauge-container {
-  position: relative;
-  width: 110px;
-  height: 110px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 6px 0;
-}
-
-.gauge-svg {
-  transform: rotate(-90deg);
-}
-
-.gauge-bg {
-  fill: none;
-  stroke: #1e2029;
-  stroke-width: 8;
-}
-
-.gauge-bar {
-  fill: none;
-  stroke: #ea580c;
-  stroke-width: 8;
-  stroke-linecap: round;
-}
-
-.gauge-number {
-  position: absolute;
-  font-size: 22px;
-  font-weight: 700;
-  color: #fff;
-}
-
-.target-desc {
-  font-size: 12px;
-  color: #8b92a0;
-  line-height: 1.4;
-  margin: 0;
-  max-width: 220px;
 }
 
 .import-quick-card {
