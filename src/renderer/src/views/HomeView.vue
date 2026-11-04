@@ -3,10 +3,18 @@ withDefaults(
   defineProps<{
     songTitle?: string
     songArtist?: string
+    audioUrlNormal?: string
+    audioUrlInstrumental?: string
+    audioUrlVocals?: string
+    isRecording?: boolean
   }>(),
   {
     songTitle: 'Midnight City',
-    songArtist: 'M83'
+    songArtist: 'M83',
+    audioUrlNormal: '',
+    audioUrlInstrumental: '',
+    audioUrlVocals: '',
+    isRecording: false
   }
 )
 

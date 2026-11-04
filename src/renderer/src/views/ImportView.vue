@@ -12,27 +12,27 @@ const songKey = ref('B minor')
 // Track A: Original Song States
 const urlNormal = ref('')
 const statusNormal = ref('')
-const audioUrlNormal = ref('')
+const audioUrlNormal = defineModel<string>('audioUrlNormal', { default: '' })
 const normalFileName = ref('')
 const tabNormal = ref<'url' | 'file'>('url')
 
 // Track B: Instrumental States
 const urlInstrumental = ref('')
 const statusInstrumental = ref('')
-const audioUrlInstrumental = ref('')
+const audioUrlInstrumental = defineModel<string>('audioUrlInstrumental', { default: '' })
 const instrumentalFileName = ref('')
 const tabInstrumental = ref<'url' | 'file'>('file')
 
 // Track C: Microphone Recording States
-const isRecording = ref(false)
+const isRecording = defineModel<boolean>('isRecording', { default: false })
 const recordingDuration = ref(0)
 const statusRecording = ref('')
-const audioUrlRecording = ref('')
+const audioUrlRecording = defineModel<string>('audioUrlRecording', { default: '' })
 const playBackingWhileRecording = ref(true)
 
 // Vocal Isolation States
 const statusVocals = ref('')
-const audioUrlVocals = ref('')
+const audioUrlVocals = defineModel<string>('audioUrlVocals', { default: '' })
 
 // Gate mic input until Original song, Instrumental, and Isolated vocals are ready
 const canRecord = computed(() => {

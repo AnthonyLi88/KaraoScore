@@ -9,6 +9,13 @@ const currentNav = ref<'home' | 'import' | 'library'>('home')
 // Active Song Information
 const activeSongTitle = ref('Midnight City')
 const activeSongArtist = ref('M83')
+
+// Active Audio Tracks & Recording States
+const audioUrlNormal = ref('')
+const audioUrlInstrumental = ref('')
+const audioUrlVocals = ref('')
+const audioUrlRecording = ref('')
+const isRecording = ref(false)
 </script>
 
 <template>
@@ -102,20 +109,29 @@ const activeSongArtist = ref('M83')
     <!-- Main Workspace Area -->
     <main class="main-content">
       <HomeView
-        v-if="currentNav === 'home'"
+        v-show="currentNav === 'home'"
         :song-title="activeSongTitle"
         :song-artist="activeSongArtist"
+        :audio-url-normal="audioUrlNormal"
+        :audio-url-instrumental="audioUrlInstrumental"
+        :audio-url-vocals="audioUrlVocals"
+        :is-recording="isRecording"
         @navigate="currentNav = $event"
       />
 
       <ImportView
-        v-else-if="currentNav === 'import'"
+        v-show="currentNav === 'import'"
         v-model:song-title="activeSongTitle"
         v-model:song-artist="activeSongArtist"
+        v-model:audio-url-normal="audioUrlNormal"
+        v-model:audio-url-instrumental="audioUrlInstrumental"
+        v-model:audio-url-vocals="audioUrlVocals"
+        v-model:audio-url-recording="audioUrlRecording"
+        v-model:is-recording="isRecording"
       />
 
       <!-- Library View Placeholder -->
-      <div v-else-if="currentNav === 'library'" class="library-placeholder">
+      <div v-show="currentNav === 'library'" class="library-placeholder">
         <header class="page-header">
           <div>
             <h1>Library</h1>
@@ -130,7 +146,7 @@ const activeSongArtist = ref('M83')
             </svg>
           </div>
           <h3>Song Library</h3>
-          <p>Your library contains 3 ready songs. Import a new song or return to Home to start singing.</p>
+          <p>Your library contains your imported tracks. Import a new song or return to Home to start singing.</p>
           <button class="btn btn-primary" @click="currentNav = 'import'">Import a song</button>
         </div>
       </div>
