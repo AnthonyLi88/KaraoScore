@@ -1,5 +1,6 @@
 <script setup lang="ts">
-withDefaults(
+import { ref, computed, watch, onUnmounted } from 'vue'
+const props = withDefaults(
   defineProps<{
     songTitle?: string
     songArtist?: string
@@ -21,6 +22,104 @@ withDefaults(
 const emit = defineEmits<{
   (e: 'navigate', tab: 'home' | 'import' | 'library'): void
 }>()
+
+// Track Readiness Computation
+const tracksReadyText = computed(() => {
+  const normal = Boolean(props.audioUrlNormal)
+  const inst = Boolean(props.audioUrlInstrumental)
+  if (normal && inst) return '2/2 TRACKS READY'
+  if (normal || inst) return '1/2 TRACK READY'
+  return 'NO AUDIO LOADED'
+})
+
+// Audio Playback State for Continue Set Card
+const audioElem = ref<HTMLAudioElement | null>(null)
+const isPlaying = ref(false)
+const currentTime = ref(0)
+const duration = ref(0)
+
+const activeAudioSrc = computed(() => {
+  return props.audioUrlInstrumental || props.audioUrlNormal || ''
+})
+
+const formatTimer = (seconds: number) => {
+  if (!seconds || isNaN(seconds)) return '00:00'
+  const m = Math.floor(seconds / 60).toString().padStart(2, '0')
+  const s = Math.floor(seconds % 60).toString().padStart(2, '0')
+  return `${m}:${s}`
+}
+
+const progressPercent = computed(() => {
+  if (!duration.value || duration.value === 0) return 0
+  return Math.min(100, (currentTime.value / duration.value) * 100)
+})
+
+const togglePlay = () => {
+  if (!activeAudioSrc.value) {
+    emit('navigate', 'import')
+    return
+  }
+
+  if (!audioElem.value) {
+    audioElem.value = new Audio(activeAudioSrc.value)
+    audioElem.value.ontimeupdate = () => {
+      if (audioElem.value) {
+        currentTime.value = audioElem.value.currentTime
+      }
+    }
+    audioElem.value.onloadedmetadata = () => {
+      if (audioElem.value) {
+        duration.value = audioElem.value.duration
+      }
+    }
+    audioElem.value.onended = () => {
+      isPlaying.value = false
+      currentTime.value = 0
+    }
+  }
+
+  if (isPlaying.value) {
+    audioElem.value.pause()
+    isPlaying.value = false
+  } else {
+    audioElem.value.play().then(() => {
+      isPlaying.value = true
+    }).catch((err) => {
+      console.warn('Playback error:', err)
+      isPlaying.value = false
+    })
+  }
+}
+
+const seek = (event: MouseEvent) => {
+  if (!audioElem.value || !duration.value) return
+  const target = event.currentTarget as HTMLElement
+  const rect = target.getBoundingClientRect()
+  const clickX = event.clientX - rect.left
+  const ratio = Math.max(0, Math.min(1, clickX / rect.width))
+  audioElem.value.currentTime = ratio * duration.value
+  currentTime.value = audioElem.value.currentTime
+}
+
+watch(activeAudioSrc, (newSrc) => {
+  if (audioElem.value) {
+    audioElem.value.pause()
+    isPlaying.value = false
+    currentTime.value = 0
+    if (newSrc) {
+      audioElem.value.src = newSrc
+      audioElem.value.load()
+    }
+  }
+})
+
+onUnmounted(() => {
+  if (audioElem.value) {
+    audioElem.value.pause()
+    audioElem.value = null
+  }
+})
+
 </script>
 
 <template>
@@ -81,38 +180,29 @@ const emit = defineEmits<{
           <div class="preview-titles">
             <span class="preview-tag">CONTINUE SET</span>
             <h4>{{ songTitle }}</h4>
-            <span class="preview-sub">{{ songArtist }} &bull; Hurry Up, We're Dreaming</span>
+            <span class="preview-sub">{{ songArtist }}</span>
           </div>
-          <button class="play-target-btn" title="Continue Set">
-            <span class="target-inner-circle"></span>
+          <button class="play-target-btn" :title="isPlaying ? 'Pause' : 'Play Track'" @click="togglePlay">
+            <svg v-if="!isPlaying" width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="5 3 19 12 5 21 5 3"/>
+            </svg>
+            <svg v-else width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+              <rect x="6" y="4" width="4" height="16"/>
+              <rect x="14" y="4" width="4" height="16"/>
+            </svg>
           </button>
         </div>
 
-        <!-- Waveform Graphic -->
-        <div class="waveform-graphic">
-          <div class="wave-bars">
-            <span style="height: 12px"></span>
-            <span style="height: 22px"></span>
-            <span style="height: 16px"></span>
-            <span style="height: 28px"></span>
-            <span style="height: 38px"></span>
-            <span style="height: 24px"></span>
-            <span style="height: 42px"></span>
-            <span style="height: 32px"></span>
-            <span class="playhead-bar"></span>
-            <span style="height: 28px"></span>
-            <span style="height: 18px"></span>
-            <span style="height: 36px"></span>
-            <span style="height: 26px"></span>
-            <span style="height: 32px"></span>
-            <span style="height: 20px"></span>
-            <span style="height: 14px"></span>
+        <!-- Real Audio Playback Progress Bar -->
+        <div class="playback-container" @click="seek" title="Seek playback">
+          <div class="playback-bar">
+            <div class="playback-progress" :style="{ width: progressPercent + '%' }"></div>
           </div>
         </div>
 
         <div class="preview-footer">
-          <span class="time-readout">01:22 / 04:03</span>
-          <span class="tracks-ready-tag">2/2 TRACKS READY</span>
+          <span class="time-readout">{{ formatTimer(currentTime) }} / {{ formatTimer(duration) }}</span>
+          <span class="tracks-ready-tag">{{ tracksReadyText }}</span>
         </div>
       </div>
     </div>
