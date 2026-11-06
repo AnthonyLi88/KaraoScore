@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { calculateVocalScore, type ScoreResult } from '../utils/scoring'
 
 // Synchronized song metadata (2-way bound with App shell)
 const songTitle = defineModel<string>('songTitle', { default: 'Midnight City' })
@@ -21,18 +22,47 @@ const urlInstrumental = ref('')
 const statusInstrumental = ref('')
 const audioUrlInstrumental = defineModel<string>('audioUrlInstrumental', { default: '' })
 const instrumentalFileName = ref('')
-const tabInstrumental = ref<'url' | 'file'>('file')
+const tabInstrumental = ref<'url' | 'file' | 'demucs'>('file')
+const isExtractingDemucs = ref(false)
 
-// Track C: Microphone Recording States
+// Track C: Microphone Recording / Singer Input States
 const isRecording = defineModel<boolean>('isRecording', { default: false })
 const recordingDuration = ref(0)
 const statusRecording = ref('')
 const audioUrlRecording = defineModel<string>('audioUrlRecording', { default: '' })
+const recordingFileName = ref('')
+const tabSinger = ref<'record' | 'file'>('record')
 const playBackingWhileRecording = ref(true)
 
 // Vocal Isolation States
 const statusVocals = ref('')
 const audioUrlVocals = defineModel<string>('audioUrlVocals', { default: '' })
+
+// Rudimentary Vocal Scoring States
+const isCalculatingScore = ref(false)
+const scoreError = ref('')
+const scoreResult = ref<ScoreResult | null>(null)
+
+// Gate scoring until both isolated vocals and singer vocals are available
+const canScore = computed(() => {
+  return Boolean(audioUrlVocals.value && audioUrlRecording.value)
+})
+
+const calculateScore = async () => {
+  if (!canScore.value || !audioUrlVocals.value || !audioUrlRecording.value) return
+
+  isCalculatingScore.value = true
+  scoreError.value = ''
+  try {
+    const result = await calculateVocalScore(audioUrlVocals.value, audioUrlRecording.value)
+    scoreResult.value = result
+  } catch (err: any) {
+    console.error('Scoring error:', err)
+    scoreError.value = err.message || 'Failed to analyze vocal audio.'
+  } finally {
+    isCalculatingScore.value = false
+  }
+}
 
 // Gate mic input until Original song, Instrumental, and Isolated vocals are ready
 const canRecord = computed(() => {
@@ -115,6 +145,7 @@ const startRecording = async () => {
     recordingDuration.value = 0
     statusRecording.value = 'Recording...'
     audioUrlRecording.value = ''
+    scoreResult.value = null
 
     recordingTimer = setInterval(() => {
       recordingDuration.value++
@@ -159,15 +190,17 @@ const toggleRecording = () => {
 }
 
 // File Selection Handler
-const onFileSelected = (event: Event, type: 'normal' | 'instrumental') => {
+const onFileSelected = (event: Event, type: 'normal' | 'instrumental' | 'recording') => {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
   if (!file) return
 
   if (type === 'normal') {
     normalFileName.value = file.name
-  } else {
+  } else if (type === 'instrumental') {
     instrumentalFileName.value = file.name
+  } else if (type === 'recording') {
+    recordingFileName.value = file.name
   }
   handleFileUpload(event, type)
 }
@@ -203,7 +236,7 @@ const downloadAudio = async (type: 'normal' | 'instrumental'): Promise<void> => 
   }
 }
 
-const handleFileUpload = async (event: Event, type: 'normal' | 'instrumental') => {
+const handleFileUpload = async (event: Event, type: 'normal' | 'instrumental' | 'recording') => {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
   if (!file) return
@@ -211,9 +244,13 @@ const handleFileUpload = async (event: Event, type: 'normal' | 'instrumental') =
   if (type === 'normal') {
     statusNormal.value = `Normalizing: ${file.name}...`
     audioUrlNormal.value = ''
-  } else {
+  } else if (type === 'instrumental') {
     statusInstrumental.value = `Normalizing: ${file.name}...`
     audioUrlInstrumental.value = ''
+  } else if (type === 'recording') {
+    statusRecording.value = `Loading: ${file.name}...`
+    audioUrlRecording.value = ''
+    scoreResult.value = null
   }
 
   const result = await window.api.normalizeAudio(file, type)
@@ -225,12 +262,19 @@ const handleFileUpload = async (event: Event, type: 'normal' | 'instrumental') =
     } else {
       statusNormal.value = `Error: ${result.error}`
     }
-  } else {
+  } else if (type === 'instrumental') {
     if (result.success && result.audioUrl) {
       statusInstrumental.value = 'Ready'
       audioUrlInstrumental.value = result.audioUrl
     } else {
       statusInstrumental.value = `Error: ${result.error}`
+    }
+  } else if (type === 'recording') {
+    if (result.success && result.audioUrl) {
+      statusRecording.value = `Ready (${file.name})`
+      audioUrlRecording.value = result.audioUrl
+    } else {
+      statusRecording.value = `Error: ${result.error}`
     }
   }
 }
@@ -238,6 +282,7 @@ const handleFileUpload = async (event: Event, type: 'normal' | 'instrumental') =
 const isolateVocalsPhase = async () => {
   statusVocals.value = 'Isolating vocals via Phase Cancellation...'
   audioUrlVocals.value = ''
+  scoreResult.value = null
   const result = await window.api.isolateVocalsPhase()
   if (result.success && result.audioUrl) {
     statusVocals.value = 'Success (Phase)!'
@@ -268,12 +313,63 @@ const isolateVocalsDemucs = async () => {
 
   statusVocals.value = 'Isolating vocals via Demucs AI (takes a moment)...'
   audioUrlVocals.value = ''
-  const result = await window.api.isolateVocalsDemucs()
+  scoreResult.value = null
+  const result = await window.api.isolateVocalsDemucs('normal')
   if (result.success && result.audioUrl) {
     statusVocals.value = 'Success (Demucs AI)!'
     audioUrlVocals.value = result.audioUrl
+
+    // If Track B is set to Demucs AI or has no instrumental yet, populate it from Demucs output!
+    if ((tabInstrumental.value === 'demucs' || !audioUrlInstrumental.value) && result.instrumentalUrl) {
+      statusInstrumental.value = 'Ready (Demucs AI)'
+      audioUrlInstrumental.value = result.instrumentalUrl
+      instrumentalFileName.value = 'Demucs Instrumental (AI)'
+    }
   } else {
     statusVocals.value = `Error: ${result.error}`
+  }
+}
+
+const extractInstrumentalDemucs = async () => {
+  if (!audioUrlNormal.value) return
+
+  statusInstrumental.value = 'Checking AI dependencies...'
+  const envCheck = await window.api.checkDemucsEnv()
+
+  if (envCheck.status === 'missing_python') {
+    statusInstrumental.value = 'Error: Python 3 is required!'
+    alert('Python 3 is required to use Demucs AI. Please install it from python.org, then try again.')
+    return
+  }
+
+  if (envCheck.status === 'needs_install') {
+    statusInstrumental.value = 'Installing AI models (please wait)...'
+    const installResult = await window.api.installDemucs()
+    if (!installResult.success) {
+      statusInstrumental.value = `Install Error: ${installResult.error}`
+      return
+    }
+  }
+
+  isExtractingDemucs.value = true
+  statusInstrumental.value = 'Separating instrumental via Demucs AI (takes a moment)...'
+  audioUrlInstrumental.value = ''
+
+  const result = await window.api.isolateVocalsDemucs('normal')
+  isExtractingDemucs.value = false
+
+  if (result.success && result.instrumentalUrl) {
+    statusInstrumental.value = 'Ready (Demucs AI)'
+    audioUrlInstrumental.value = result.instrumentalUrl
+    instrumentalFileName.value = 'Demucs Instrumental (AI)'
+
+    // Demucs separates both vocals and backing track at the same time
+    if (!audioUrlVocals.value && result.audioUrl) {
+      audioUrlVocals.value = result.audioUrl
+      statusVocals.value = 'Success (Demucs AI)!'
+    }
+  } else {
+    statusInstrumental.value = `Error: ${result.error || 'Failed to extract instrumental'}`
   }
 }
 </script>
@@ -423,7 +519,7 @@ const isolateVocalsDemucs = async () => {
             <span v-if="statusInstrumental" class="track-status">{{ statusInstrumental }}</span>
           </div>
 
-          <!-- Tabs: URL vs File -->
+          <!-- Tabs: URL vs File vs Demucs AI -->
           <div class="tabs">
             <button
               class="tab"
@@ -438,6 +534,13 @@ const isolateVocalsDemucs = async () => {
               @click="tabInstrumental = 'file'"
             >
               Local file
+            </button>
+            <button
+              class="tab"
+              :class="{ active: tabInstrumental === 'demucs' }"
+              @click="tabInstrumental = 'demucs'"
+            >
+              Demucs AI
             </button>
           </div>
 
@@ -455,7 +558,7 @@ const isolateVocalsDemucs = async () => {
           </div>
 
           <!-- Local File Input -->
-          <div v-else class="input-action-row">
+          <div v-else-if="tabInstrumental === 'file'" class="input-action-row">
             <input
               type="file"
               accept="audio/*"
@@ -464,54 +567,37 @@ const isolateVocalsDemucs = async () => {
             />
           </div>
 
+          <!-- Demucs AI Extraction Option -->
+          <div v-else-if="tabInstrumental === 'demucs'" class="demucs-track-action">
+            <div v-if="!audioUrlNormal" class="demucs-hint">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <span>Load <strong>Track A (Original song)</strong> first to extract the instrumental using Demucs AI.</span>
+            </div>
+            <div v-else class="demucs-ready-row">
+              <button
+                class="btn btn-isolate demucs"
+                :disabled="isExtractingDemucs"
+                @click="extractInstrumentalDemucs"
+              >
+                <span v-if="isExtractingDemucs">Extracting Instrumental (AI)...</span>
+                <span v-else>{{ audioUrlInstrumental && instrumentalFileName === 'Demucs Instrumental (AI)' ? 'Re-extract Instrumental with Demucs' : 'Separate Instrumental with Demucs' }}</span>
+              </button>
+              <span class="demucs-note">Uses AI to separate backing music from Track A</span>
+            </div>
+          </div>
+
           <!-- Audio Player -->
           <div v-if="audioUrlInstrumental" class="player-wrap">
+            <span v-if="tabInstrumental === 'demucs'" class="preview-tag">Demucs Instrumental:</span>
             <audio :src="audioUrlInstrumental" controls class="audio-control"></audio>
           </div>
         </div>
 
-        <!-- Track C: User Mic Recording -->
-        <div class="panel track-panel" :class="{ 'track-locked': !canRecord }">
-          <div class="track-header">
-            <span class="tag-letter recording-badge" :class="{ 'is-live': isRecording, 'is-locked': !canRecord }">C</span>
-            <div class="track-info">
-              <h3>Vocal recording (Microphone)</h3>
-              <p v-if="canRecord">Record your voice through your mic to test singing and scoring.</p>
-              <p v-else class="lock-msg">
-                Locked &bull; Requires {{ missingRequirements.join(', ') }}
-              </p>
-            </div>
-            <span v-if="statusRecording" class="track-status" :class="{ 'recording-active': isRecording }">
-              {{ statusRecording }}
-            </span>
-          </div>
-
-          <!-- Record Actions -->
-          <div class="record-action-row">
-            <button
-              class="btn btn-record"
-              :class="{ recording: isRecording }"
-              :disabled="!canRecord"
-              @click="toggleRecording"
-            >
-              <span class="rec-icon"></span>
-              <span>{{ isRecording ? `Stop Recording (${formatTimer(recordingDuration)})` : 'Record from Mic' }}</span>
-            </button>
-
-            <label v-if="audioUrlInstrumental && canRecord" class="backing-toggle">
-              <input v-model="playBackingWhileRecording" type="checkbox" :disabled="isRecording" />
-              <span>Play instrumental while recording</span>
-            </label>
-          </div>
-
-          <!-- Audio Player Preview for Recording -->
-          <div v-if="audioUrlRecording" class="player-wrap">
-            <span class="preview-tag">Take preview:</span>
-            <audio :src="audioUrlRecording" controls class="audio-control"></audio>
-          </div>
-        </div>
-
-        <!-- Bottom Card: Vocal Isolation & Actions -->
+        <!-- Vocal Isolation & Actions -->
         <div class="panel actions-panel">
           <div class="actions-left">
             <h3>Vocal Isolation &amp; Validation</h3>
@@ -553,6 +639,196 @@ const isolateVocalsDemucs = async () => {
           <div class="actions-right">
             <button class="btn btn-primary">Save to library</button>
             <button class="btn btn-secondary">Save as draft</button>
+          </div>
+        </div>
+
+        <!-- Track C: Singer's Vocal Input -->
+        <div class="panel track-panel" :class="{ 'track-locked': !canRecord }">
+          <div class="track-header">
+            <span class="tag-letter recording-badge" :class="{ 'is-live': isRecording, 'is-locked': !canRecord }">C</span>
+            <div class="track-info">
+              <h3>Singer's vocal input</h3>
+              <p v-if="canRecord">Record through your mic or upload an audio file to test singing and scoring.</p>
+              <p v-else class="lock-msg">
+                Locked &bull; Requires {{ missingRequirements.join(', ') }}
+              </p>
+            </div>
+            <span v-if="statusRecording" class="track-status" :class="{ 'recording-active': isRecording }">
+              {{ statusRecording }}
+            </span>
+          </div>
+
+          <!-- Tabs: Record from mic vs Local file -->
+          <div class="tabs">
+            <button
+              class="tab"
+              :class="{ active: tabSinger === 'record' }"
+              :disabled="!canRecord"
+              @click="tabSinger = 'record'"
+            >
+              Record from mic
+            </button>
+            <button
+              class="tab"
+              :class="{ active: tabSinger === 'file' }"
+              :disabled="!canRecord"
+              @click="tabSinger = 'file'"
+            >
+              Local file
+            </button>
+          </div>
+
+          <!-- Record Tab Content -->
+          <div v-if="tabSinger === 'record'" class="record-action-row">
+            <button
+              class="btn btn-record"
+              :class="{ recording: isRecording }"
+              :disabled="!canRecord"
+              @click="toggleRecording"
+            >
+              <span class="rec-icon"></span>
+              <span>{{ isRecording ? `Stop Recording (${formatTimer(recordingDuration)})` : 'Record from Mic' }}</span>
+            </button>
+
+            <label v-if="audioUrlInstrumental && canRecord" class="backing-toggle">
+              <input v-model="playBackingWhileRecording" type="checkbox" :disabled="isRecording" />
+              <span>Play instrumental while recording</span>
+            </label>
+          </div>
+
+          <!-- Local File Tab Content -->
+          <div v-else class="input-action-row">
+            <input
+              type="file"
+              accept="audio/*"
+              class="file-input"
+              :disabled="!canRecord"
+              @change="(e) => onFileSelected(e, 'recording')"
+            />
+          </div>
+
+          <!-- Audio Player Preview for Recording or Uploaded Audio -->
+          <div v-if="audioUrlRecording" class="player-wrap">
+            <span class="preview-tag">{{ tabSinger === 'file' ? 'Singer audio preview:' : 'Take preview:' }}</span>
+            <audio :src="audioUrlRecording" controls class="audio-control"></audio>
+          </div>
+        </div>
+
+        <!-- Section: Vocal Performance Score -->
+        <div class="panel scoring-panel" :class="{ 'track-locked': !canScore }">
+          <div class="track-header">
+            <span
+              class="tag-letter score-badge"
+              :class="{ 'score-ready': canScore && !isCalculatingScore, 'score-active': isCalculatingScore, 'score-locked': !canScore }"
+            >
+              ★
+            </span>
+            <div class="track-info">
+              <h3>Vocal performance score</h3>
+              <p v-if="canScore">Compare your vocals with the isolated guide vocals to evaluate pitch, rhythm, and accuracy.</p>
+              <p v-else class="lock-msg">
+                Locked &bull; Requires Isolated vocals and Singer's vocal input
+              </p>
+            </div>
+            <span v-if="isCalculatingScore" class="track-status score-evaluating">
+              Analyzing pitch...
+            </span>
+            <span v-else-if="scoreResult" class="grade-pill" :class="'grade-' + scoreResult.grade.toLowerCase()">
+              Grade {{ scoreResult.grade }} &bull; {{ scoreResult.overallScore }}%
+            </span>
+          </div>
+
+          <!-- Scoring Action Row -->
+          <div class="scoring-action-row">
+            <button
+              class="btn btn-score"
+              :disabled="!canScore || isCalculatingScore"
+              @click="calculateScore"
+            >
+              <span v-if="isCalculatingScore">Analyzing Pitch &amp; Timing...</span>
+              <span v-else-if="scoreResult">Recalculate Score</span>
+              <span v-else>Evaluate &amp; Score Vocals</span>
+            </button>
+            <span v-if="canScore && !scoreResult && !isCalculatingScore" class="score-ready-hint">
+              Both vocal tracks ready &bull; Click to score performance
+            </span>
+          </div>
+
+          <!-- Error notice -->
+          <div v-if="scoreError" class="status-msg score-error">
+            {{ scoreError }}
+          </div>
+
+          <!-- Score Card Display -->
+          <div v-if="scoreResult" class="score-card">
+            <!-- Top Hero Row: Grade Badge + Score Circle/Meter -->
+            <div class="score-hero">
+              <div class="grade-circle" :class="'grade-' + scoreResult.grade.toLowerCase()">
+                <div class="grade-letter">{{ scoreResult.grade }}</div>
+                <div class="grade-subtext">GRADE</div>
+              </div>
+
+              <div class="score-main-stats">
+                <div class="score-number-row">
+                  <span class="score-big-num">{{ scoreResult.overallScore }}</span>
+                  <span class="score-denom">/ 100</span>
+                </div>
+                <!-- Main Progress Bar -->
+                <div class="score-bar-track">
+                  <div
+                    class="score-bar-fill"
+                    :style="{ width: scoreResult.overallScore + '%' }"
+                    :class="'fill-' + scoreResult.grade.toLowerCase()"
+                  ></div>
+                </div>
+                <p class="score-feedback-text">{{ scoreResult.feedback }}</p>
+              </div>
+            </div>
+
+            <!-- Metric Breakdown Grid -->
+            <div class="score-metrics-grid">
+              <!-- Pitch Accuracy -->
+              <div class="metric-box">
+                <div class="metric-label-row">
+                  <span>Pitch Accuracy</span>
+                  <span class="metric-val">{{ scoreResult.pitchScore }}%</span>
+                </div>
+                <div class="metric-track">
+                  <div class="metric-fill pitch-fill" :style="{ width: scoreResult.pitchScore + '%' }"></div>
+                </div>
+                <span class="metric-desc">Melody semitone precision</span>
+              </div>
+
+              <!-- Rhythm & Timing -->
+              <div class="metric-box">
+                <div class="metric-label-row">
+                  <span>Rhythm &amp; Timing</span>
+                  <span class="metric-val">{{ scoreResult.timingScore }}%</span>
+                </div>
+                <div class="metric-track">
+                  <div class="metric-fill timing-fill" :style="{ width: scoreResult.timingScore + '%' }"></div>
+                </div>
+                <span class="metric-desc">Phrase entrance and sustain</span>
+              </div>
+
+              <!-- Notes Breakdown -->
+              <div class="metric-box">
+                <div class="metric-label-row">
+                  <span>Notes Hit</span>
+                  <span class="metric-val">{{ scoreResult.details.perfectPercent + scoreResult.details.goodPercent }}%</span>
+                </div>
+                <div class="stacked-bar">
+                  <div class="bar-perfect" :style="{ width: scoreResult.details.perfectPercent + '%' }" title="Perfect"></div>
+                  <div class="bar-good" :style="{ width: scoreResult.details.goodPercent + '%' }" title="Good"></div>
+                  <div class="bar-miss" :style="{ width: scoreResult.details.missPercent + '%' }" title="Miss"></div>
+                </div>
+                <div class="legend-row">
+                  <span class="leg-item"><i class="leg-dot dot-perfect"></i> Perfect {{ scoreResult.details.perfectPercent }}%</span>
+                  <span class="leg-item"><i class="leg-dot dot-good"></i> Good {{ scoreResult.details.goodPercent }}%</span>
+                  <span class="leg-item"><i class="leg-dot dot-miss"></i> Miss {{ scoreResult.details.missPercent }}%</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -857,6 +1133,11 @@ const isolateVocalsDemucs = async () => {
   color: #fff;
 }
 
+.tab:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .input-action-row {
   display: flex;
   gap: 8px;
@@ -961,6 +1242,38 @@ const isolateVocalsDemucs = async () => {
 
 .btn-isolate.demucs:hover:not(:disabled) {
   background: #331e17;
+}
+
+/* Demucs Option inside Track B */
+.demucs-track-action {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.demucs-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #f59e0b;
+}
+
+.demucs-ready-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.demucs-note {
+  font-size: 11.5px;
+  color: #8b92a0;
 }
 
 .status-msg {
@@ -1106,5 +1419,378 @@ const isolateVocalsDemucs = async () => {
   50% {
     opacity: 0.4;
   }
+}
+
+/* Vocal Performance Scoring Styles */
+.scoring-panel {
+  border-color: #272a39;
+}
+
+.score-badge {
+  font-size: 13px !important;
+  background: #2b1f13 !important;
+  color: #f59e0b !important;
+}
+
+.score-badge.score-ready {
+  background: #3b2810 !important;
+  color: #fbbf24 !important;
+  border: 1px solid #784812;
+}
+
+.score-badge.score-active {
+  background: #ea580c !important;
+  color: #fff !important;
+  animation: rec-pulse 0.9s infinite ease-in-out;
+}
+
+.score-badge.score-locked {
+  background: #1a1c24 !important;
+  color: #6b7280 !important;
+}
+
+.score-evaluating {
+  color: #f59e0b !important;
+  font-weight: 600;
+  animation: rec-pulse 1s infinite ease-in-out;
+}
+
+.scoring-action-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.btn-score {
+  background: linear-gradient(135deg, #ea580c, #c2410c);
+  color: #ffffff;
+  padding: 8px 18px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(234, 88, 12, 0.25);
+}
+
+.btn-score:hover:not(:disabled) {
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  box-shadow: 0 4px 12px rgba(234, 88, 12, 0.4);
+}
+
+.btn-score:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.score-ready-hint {
+  font-size: 11.5px;
+  color: #10b981;
+  font-weight: 500;
+}
+
+.score-error {
+  color: #ef4444 !important;
+  margin-top: 6px;
+}
+
+.grade-pill {
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.grade-pill.grade-s {
+  background: #2e2410;
+  color: #fbbf24;
+  border: 1px solid #784f10;
+}
+
+.grade-pill.grade-a {
+  background: #112c22;
+  color: #34d399;
+  border: 1px solid #16654a;
+}
+
+.grade-pill.grade-b {
+  background: #102636;
+  color: #38bdf8;
+  border: 1px solid #164f73;
+}
+
+.grade-pill.grade-c {
+  background: #2b1b13;
+  color: #fb923c;
+  border: 1px solid #783515;
+}
+
+.grade-pill.grade-d {
+  background: #2d1418;
+  color: #f87171;
+  border: 1px solid #7f1d2d;
+}
+
+/* Score Card Container */
+.score-card {
+  margin-top: 14px;
+  background: #0f1016;
+  border: 1px solid #232635;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.score-hero {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.grade-circle {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 2px solid;
+}
+
+.grade-circle.grade-s {
+  background: radial-gradient(circle, #382c12 0%, #171308 100%);
+  border-color: #fbbf24;
+  color: #fbbf24;
+  box-shadow: 0 0 16px rgba(251, 191, 36, 0.25);
+}
+
+.grade-circle.grade-a {
+  background: radial-gradient(circle, #133327 0%, #081611 100%);
+  border-color: #34d399;
+  color: #34d399;
+  box-shadow: 0 0 16px rgba(52, 211, 153, 0.25);
+}
+
+.grade-circle.grade-b {
+  background: radial-gradient(circle, #122b3d 0%, #07131b 100%);
+  border-color: #38bdf8;
+  color: #38bdf8;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.25);
+}
+
+.grade-circle.grade-c {
+  background: radial-gradient(circle, #331f16 0%, #170d08 100%);
+  border-color: #fb923c;
+  color: #fb923c;
+  box-shadow: 0 0 16px rgba(251, 146, 60, 0.25);
+}
+
+.grade-circle.grade-d {
+  background: radial-gradient(circle, #36171c 0%, #17080a 100%);
+  border-color: #f87171;
+  color: #f87171;
+  box-shadow: 0 0 16px rgba(248, 113, 113, 0.25);
+}
+
+.grade-letter {
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.grade-subtext {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  opacity: 0.8;
+  margin-top: 1px;
+}
+
+.score-main-stats {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.score-number-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.score-big-num {
+  font-size: 28px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1;
+}
+
+.score-denom {
+  font-size: 13px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.score-bar-track {
+  height: 8px;
+  width: 100%;
+  background: #1a1c26;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.score-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.score-bar-fill.fill-s {
+  background: linear-gradient(90deg, #f59e0b, #fbbf24);
+}
+
+.score-bar-fill.fill-a {
+  background: linear-gradient(90deg, #10b981, #34d399);
+}
+
+.score-bar-fill.fill-b {
+  background: linear-gradient(90deg, #0284c7, #38bdf8);
+}
+
+.score-bar-fill.fill-c {
+  background: linear-gradient(90deg, #ea580c, #fb923c);
+}
+
+.score-bar-fill.fill-d {
+  background: linear-gradient(90deg, #dc2626, #f87171);
+}
+
+.score-feedback-text {
+  font-size: 12.5px;
+  color: #d1d5db;
+  margin: 2px 0 0 0;
+  line-height: 1.4;
+}
+
+.score-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  border-top: 1px solid #1c1e29;
+  padding-top: 14px;
+}
+
+.metric-box {
+  background: #14151e;
+  border: 1px solid #20222f;
+  border-radius: 6px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.metric-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11.5px;
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+.metric-val {
+  font-weight: 700;
+  color: #fff;
+}
+
+.metric-track {
+  height: 6px;
+  width: 100%;
+  background: #1f212f;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.metric-fill.pitch-fill {
+  height: 100%;
+  background: #ea580c;
+  border-radius: 3px;
+}
+
+.metric-fill.timing-fill {
+  height: 100%;
+  background: #38bdf8;
+  border-radius: 3px;
+}
+
+.metric-desc {
+  font-size: 10.5px;
+  color: #6b7280;
+}
+
+.stacked-bar {
+  height: 6px;
+  width: 100%;
+  display: flex;
+  border-radius: 3px;
+  overflow: hidden;
+  background: #1f212f;
+}
+
+.bar-perfect {
+  background: #10b981;
+}
+
+.bar-good {
+  background: #38bdf8;
+}
+
+.bar-miss {
+  background: #ef4444;
+}
+
+.legend-row {
+  display: flex;
+  gap: 8px;
+  font-size: 10px;
+  color: #8b92a0;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.leg-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.leg-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.dot-perfect {
+  background: #10b981;
+}
+
+.dot-good {
+  background: #38bdf8;
+}
+
+.dot-miss {
+  background: #ef4444;
 }
 </style>
