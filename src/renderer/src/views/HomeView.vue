@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted } from 'vue'
+
 const props = withDefaults(
   defineProps<{
     songTitle?: string
@@ -24,12 +25,27 @@ const emit = defineEmits<{
 }>()
 
 // Track Readiness Computation
+const canRecord = computed(() => {
+  return Boolean(props.audioUrlNormal && props.audioUrlInstrumental && props.audioUrlVocals)
+})
+
 const tracksReadyText = computed(() => {
   const normal = Boolean(props.audioUrlNormal)
   const inst = Boolean(props.audioUrlInstrumental)
   if (normal && inst) return '2/2 TRACKS READY'
   if (normal || inst) return '1/2 TRACK READY'
   return 'NO AUDIO LOADED'
+})
+
+// Dynamic Microphone & Audio Readiness Status
+const headerStatus = computed(() => {
+  if (props.isRecording) {
+    return { text: 'RECORDING ACTIVE', dotClass: 'recording-dot' }
+  }
+  if (canRecord.value) {
+    return { text: 'MIC READY', dotClass: 'ready-dot' }
+  }
+  return { text: 'MIC STANDBY', dotClass: 'standby-dot' }
 })
 
 // Audio Playback State for Continue Set Card
@@ -56,6 +72,7 @@ const progressPercent = computed(() => {
 
 const togglePlay = () => {
   if (!activeAudioSrc.value) {
+    // If no audio loaded, navigate user to import workspace
     emit('navigate', 'import')
     return
   }
@@ -101,6 +118,7 @@ const seek = (event: MouseEvent) => {
   currentTime.value = audioElem.value.currentTime
 }
 
+// Watch for audio source updates
 watch(activeAudioSrc, (newSrc) => {
   if (audioElem.value) {
     audioElem.value.pause()
@@ -119,7 +137,6 @@ onUnmounted(() => {
     audioElem.value = null
   }
 })
-
 </script>
 
 <template>
@@ -132,10 +149,10 @@ onUnmounted(() => {
       </div>
       <div class="header-actions">
         <div class="header-status">
-          <span class="status-dot"></span>
-          <span>MIC READY</span>
+          <span class="status-dot" :class="headerStatus.dotClass"></span>
+          <span>{{ headerStatus.text }}</span>
         </div>
-        </div>
+      </div>
     </header>
 
     <!-- Hero Card (Continue Singing) -->
@@ -143,10 +160,10 @@ onUnmounted(() => {
       <div class="hero-content">
         <h2>Ready for the next verse?</h2>
         <p class="hero-desc">
-          Continue with "{{ songTitle }}" or pick any prepared song from your library. Input monitoring is calibrated.
+          Continue singing "{{ songTitle }}" or import a new song from YouTube or local audio to split stems and practice.
         </p>
         <div class="hero-actions">
-          <button class="btn btn-primary btn-hero">
+          <button class="btn btn-primary btn-hero" @click="emit('navigate', 'import')">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
               <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
               <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
@@ -169,7 +186,7 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <!-- Continue Set Card Preview -->
+      <!-- Continue Set Card Preview (Fully Functional) -->
       <div class="hero-preview-card">
         <div class="preview-header">
           <div class="preview-badge">
@@ -207,24 +224,55 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- Bottom 2-Column Section -->
-    <div class="home-bottom-grid">
-      <!-- Quick Import Action Card -->
-      <div class="panel quick-import-panel full-width">
-        <div class="import-quick-card" @click="emit('navigate', 'import')">
-          <div class="import-quick-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="7 10 12 15 17 10" />
-              <line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
-          </div>
-          <div class="import-quick-text">
-            <span class="quick-title">Import a new song</span>
-            <span class="quick-sub">YouTube or local audio</span>
-          </div>
-          <span class="quick-arrow">&rarr;</span>
+    <!-- Quick Functional Feature Actions -->
+    <div class="quick-actions-grid">
+      <!-- Import Song Action Card -->
+      <div class="panel action-card" @click="emit('navigate', 'import')">
+        <div class="action-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
         </div>
+        <div class="action-content">
+          <h3>Import Song Sources</h3>
+          <p>Download from YouTube or import local audio files to automatically prepare tracks.</p>
+        </div>
+        <span class="action-arrow">&rarr;</span>
+      </div>
+
+      <!-- Vocal Isolation Action Card -->
+      <div class="panel action-card" @click="emit('navigate', 'import')">
+        <div class="action-icon isolation">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
+            <path d="M2 12h20" />
+          </svg>
+        </div>
+        <div class="action-content">
+          <h3>Vocal Isolation</h3>
+          <p>Extract instrumental and vocal stems using Demucs AI or Phase Cancellation.</p>
+        </div>
+        <span class="action-arrow">&rarr;</span>
+      </div>
+
+      <!-- Microphone Recording Action Card -->
+      <div class="panel action-card" @click="emit('navigate', 'import')">
+        <div class="action-icon mic">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="23"/>
+            <line x1="8" y1="23" x2="16" y2="23"/>
+          </svg>
+        </div>
+        <div class="action-content">
+          <h3>Sing &amp; Record</h3>
+          <p>Sing through your microphone with real-time backing instrumental playback.</p>
+        </div>
+        <span class="action-arrow">&rarr;</span>
       </div>
     </div>
   </div>
@@ -234,7 +282,7 @@ onUnmounted(() => {
 .home-view {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
 }
 
 /* Page Header */
@@ -282,33 +330,29 @@ onUnmounted(() => {
   width: 7px;
   height: 7px;
   border-radius: 50%;
+}
+
+.ready-dot {
   background-color: #ea580c;
 }
 
-.icon-btn {
-  background: transparent;
-  border: 1px solid #20222c;
-  border-radius: 6px;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #8b92a0;
-  cursor: pointer;
+.standby-dot {
+  background-color: #4b5563;
 }
 
-.avatar-pill {
-  width: 30px;
-  height: 30px;
-  border-radius: 6px;
-  background: #1e202a;
-  color: #e5e7eb;
-  font-size: 11px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.recording-dot {
+  background-color: #ef4444;
+  box-shadow: 0 0 8px #ef4444;
+  animation: pulse-dot 1s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
 }
 
 /* Button & Panel primitives */
@@ -352,25 +396,15 @@ onUnmounted(() => {
   background: #14151b;
   border: 1px solid #20222c;
   border-radius: 8px;
-  padding: 22px 24px;
+  padding: 24px 28px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 24px;
+  gap: 28px;
 }
 
 .hero-content {
   flex: 1;
-}
-
-.streak-pill {
-  font-size: 11px;
-  font-weight: 700;
-  color: #ea580c;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: 6px;
-  display: inline-block;
 }
 
 .hero-content h2 {
@@ -383,8 +417,8 @@ onUnmounted(() => {
 .hero-desc {
   font-size: 13px;
   color: #8b92a0;
-  margin: 0 0 18px 0;
-  max-width: 480px;
+  margin: 0 0 20px 0;
+  max-width: 500px;
   line-height: 1.5;
 }
 
@@ -398,22 +432,14 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 9px 16px;
+  padding: 10px 18px;
 }
 
 .btn-hero-secondary {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 9px 16px;
-}
-
-.shortcut-hint {
-  font-size: 11px;
-  color: #555966;
-  font-family: monospace;
-  letter-spacing: 0.05em;
-  margin-left: 4px;
+  padding: 10px 18px;
 }
 
 /* Continue Set Card Preview */
@@ -421,11 +447,11 @@ onUnmounted(() => {
   background: #0f1014;
   border: 1px solid #1e2029;
   border-radius: 8px;
-  padding: 16px;
-  width: 320px;
+  padding: 18px;
+  width: 330px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
 .preview-header {
@@ -435,8 +461,8 @@ onUnmounted(() => {
 }
 
 .preview-badge {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border-radius: 6px;
   background: #1c1514;
   display: flex;
@@ -472,58 +498,45 @@ onUnmounted(() => {
 }
 
 .play-target-btn {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: #ea580c;
   border: none;
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   flex-shrink: 0;
-  transition: transform 0.15s ease;
+  transition: transform 0.15s ease, background-color 0.15s ease;
 }
 
 .play-target-btn:hover {
-  transform: scale(1.05);
+  transform: scale(1.08);
+  background: #f97316;
 }
 
-.target-inner-circle {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #14151b;
+/* Playback Progress Container */
+.playback-container {
+  cursor: pointer;
+  padding: 4px 0;
 }
 
-.waveform-graphic {
-  background: #0b0c0f;
-  border-radius: 4px;
-  padding: 8px 12px;
-  height: 48px;
-  display: flex;
-  align-items: center;
-}
-
-.wave-bars {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.playback-bar {
   width: 100%;
-  height: 100%;
+  height: 6px;
+  background: #1e2029;
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
 }
 
-.wave-bars span {
-  width: 3px;
-  background: #252834;
-  border-radius: 2px;
-  display: inline-block;
-}
-
-.wave-bars .playhead-bar {
-  width: 2px;
+.playback-progress {
   height: 100%;
   background: #ea580c;
+  border-radius: 3px;
+  transition: width 0.1s linear;
 }
 
 .preview-footer {
@@ -545,272 +558,76 @@ onUnmounted(() => {
   font-size: 10px;
 }
 
-/* Stats Row */
-.stats-row {
+/* Quick Functional Feature Actions */
+.quick-actions-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
+  gap: 16px;
 }
 
-.stat-card {
-  background: #14151b;
-  border: 1px solid #20222c;
-  border-radius: 8px;
-  padding: 16px;
+.action-card {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
+  padding: 18px 20px;
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-.stat-icon-wrap {
+.action-card:hover {
+  border-color: #383c4e;
+  background: #171922;
+  transform: translateY(-1px);
+}
+
+.action-icon {
   width: 40px;
   height: 40px;
   border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.stat-icon-wrap.flame {
   background: rgba(234, 88, 12, 0.1);
-}
-
-.stat-icon-wrap.chart {
-  background: rgba(16, 185, 129, 0.1);
-}
-
-.stat-icon-wrap.target {
-  background: rgba(96, 165, 250, 0.1);
-}
-
-.stat-body {
-  display: flex;
-  flex-direction: column;
-}
-
-.stat-label {
-  font-size: 10px;
-  font-weight: 700;
-  color: #6b7280;
-  letter-spacing: 0.06em;
-}
-
-.stat-val {
-  font-size: 20px;
-  font-weight: 700;
-  color: #fff;
-  margin: 2px 0;
-}
-
-.stat-sub {
-  font-size: 11px;
-  color: #8b92a0;
-}
-
-/* Home Bottom Grid */
-.home-bottom-grid {
-  display: flex;
-  gap: 16px;
-  align-items: stretch;
-}
-
-.recent-songs-panel {
-  flex: 1.6;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.panel-header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.panel-header-row h3 {
-  font-size: 14px;
-  font-weight: 700;
-  color: #fff;
-  margin: 0 0 2px 0;
-}
-
-.panel-sub {
-  font-size: 12px;
-  color: #8b92a0;
-  margin: 0;
-}
-
-.view-library-link {
-  font-size: 12px;
   color: #ea580c;
-  cursor: pointer;
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.view-library-link:hover {
-  text-decoration: underline;
-}
-
-.recent-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.recent-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
-  background: #0f1014;
-  border: 1px solid #1e2029;
-  border-radius: 6px;
-  transition: all 0.15s ease;
-}
-
-.recent-item:hover {
-  border-color: #2b2e3c;
-}
-
-.song-disc-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  background: #181922;
-  color: #8b92a0;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 
-.song-details {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
+.action-icon.isolation {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
 }
 
-.song-name {
+.action-icon.mic {
+  background: rgba(96, 165, 250, 0.1);
+  color: #60a5fa;
+}
+
+.action-content {
+  flex: 1;
+}
+
+.action-content h3 {
   font-size: 13.5px;
   font-weight: 600;
   color: #fff;
+  margin: 0 0 3px 0;
 }
 
-.song-meta {
+.action-content p {
   font-size: 11.5px;
   color: #8b92a0;
+  margin: 0;
+  line-height: 1.4;
 }
 
-.song-status {
-  font-size: 11.5px;
-  font-weight: 500;
-}
-
-.song-status.ready {
-  color: #ea580c;
-}
-
-.song-status.needs-vocal {
-  color: #f87171;
-}
-
-.score-display {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 44px;
-}
-
-.score-number {
-  font-size: 14px;
-  font-weight: 700;
-  color: #fff;
-}
-
-.score-label {
-  font-size: 8.5px;
+.action-arrow {
   color: #6b7280;
-  letter-spacing: 0.08em;
+  font-size: 16px;
+  transition: transform 0.15s ease, color 0.15s ease;
 }
 
-.song-play-btn {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: transparent;
-  border: 1px solid #282a36;
-  color: #9ca3af;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.song-play-btn:hover {
-  border-color: #ea580c;
+.action-card:hover .action-arrow {
   color: #ea580c;
-}
-
-.quick-import-panel {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.import-quick-card {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  background: #101116;
-  border: 1px solid #20222c;
-  border-radius: 6px;
-  cursor: pointer;
-  text-align: left;
-  transition: all 0.15s ease;
-}
-
-.import-quick-card:hover {
-  border-color: #383c4e;
-  background: #14151b;
-}
-
-.import-quick-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  background: #181922;
-  color: #ea580c;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.import-quick-text {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.quick-title {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: #fff;
-}
-
-.quick-sub {
-  font-size: 10.5px;
-  color: #8b92a0;
-}
-
-.quick-arrow {
-  color: #6b7280;
-  font-size: 14px;
+  transform: translateX(3px);
 }
 </style>
