@@ -1,5 +1,14 @@
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted } from 'vue'
+import {
+  PhMicrophone,
+  PhListDashes,
+  PhWaveform,
+  PhPlay,
+  PhPause,
+  PhUploadSimple,
+  PhSparkle
+} from '@phosphor-icons/vue'
 
 const props = withDefaults(
   defineProps<{
@@ -164,23 +173,11 @@ onUnmounted(() => {
         </p>
         <div class="hero-actions">
           <button class="btn btn-primary btn-hero" @click="emit('navigate', 'import')">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-              <line x1="12" y1="19" x2="12" y2="23"/>
-              <line x1="8" y1="23" x2="16" y2="23"/>
-            </svg>
+            <PhMicrophone :size="15" weight="bold" />
             <span>Start singing</span>
           </button>
           <button class="btn btn-secondary btn-hero-secondary" @click="emit('navigate', 'import')">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="8" y1="6" x2="21" y2="6"/>
-              <line x1="8" y1="12" x2="21" y2="12"/>
-              <line x1="8" y1="18" x2="21" y2="18"/>
-              <line x1="3" y1="6" x2="3.01" y2="6"/>
-              <line x1="3" y1="12" x2="3.01" y2="12"/>
-              <line x1="3" y1="18" x2="3.01" y2="18"/>
-            </svg>
+            <PhListDashes :size="15" weight="bold" />
             <span>Choose another song</span>
           </button>
         </div>
@@ -190,9 +187,7 @@ onUnmounted(() => {
       <div class="hero-preview-card">
         <div class="preview-header">
           <div class="preview-badge">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="2.5" stroke-linecap="round">
-              <path d="M4 12v1M8 8v9M12 4v16M16 9v7M20 11v3" />
-            </svg>
+            <PhWaveform :size="20" weight="bold" />
           </div>
           <div class="preview-titles">
             <span class="preview-tag">CONTINUE SET</span>
@@ -200,13 +195,8 @@ onUnmounted(() => {
             <span class="preview-sub">{{ songArtist }}</span>
           </div>
           <button class="play-target-btn" :title="isPlaying ? 'Pause' : 'Play Track'" @click="togglePlay">
-            <svg v-if="!isPlaying" width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-              <polygon points="5 3 19 12 5 21 5 3"/>
-            </svg>
-            <svg v-else width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-              <rect x="6" y="4" width="4" height="16"/>
-              <rect x="14" y="4" width="4" height="16"/>
-            </svg>
+            <PhPlay v-if="!isPlaying" :size="12" weight="fill" />
+            <PhPause v-else :size="12" weight="fill" />
           </button>
         </div>
 
@@ -229,11 +219,7 @@ onUnmounted(() => {
       <!-- Import Song Action Card -->
       <div class="panel action-card" @click="emit('navigate', 'import')">
         <div class="action-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-            <polyline points="7 10 12 15 17 10" />
-            <line x1="12" y1="15" x2="12" y2="3" />
-          </svg>
+          <PhUploadSimple :size="20" weight="regular" />
         </div>
         <div class="action-content">
           <h3>Import Song Sources</h3>
@@ -245,11 +231,7 @@ onUnmounted(() => {
       <!-- Vocal Isolation Action Card -->
       <div class="panel action-card" @click="emit('navigate', 'import')">
         <div class="action-icon isolation">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10" />
-            <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
-            <path d="M2 12h20" />
-          </svg>
+          <PhSparkle :size="20" weight="regular" />
         </div>
         <div class="action-content">
           <h3>Vocal Isolation</h3>
@@ -261,12 +243,7 @@ onUnmounted(() => {
       <!-- Microphone Recording Action Card -->
       <div class="panel action-card" @click="emit('navigate', 'import')">
         <div class="action-icon mic">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-            <line x1="12" y1="19" x2="12" y2="23"/>
-            <line x1="8" y1="23" x2="16" y2="23"/>
-          </svg>
+          <PhMicrophone :size="20" weight="regular" />
         </div>
         <div class="action-content">
           <h3>Sing &amp; Record</h3>
@@ -469,6 +446,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  color: #ea580c;
 }
 
 .preview-titles {
