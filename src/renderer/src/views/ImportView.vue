@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { PhWaveform, PhInfo } from '@phosphor-icons/vue'
 import { calculateVocalScore, type ScoreResult } from '../utils/scoring'
 
 // Synchronized song metadata (2-way bound with App shell)
@@ -409,9 +410,7 @@ const extractInstrumentalDemucs = async () => {
         <!-- Artwork Box -->
         <div class="artwork-card">
           <div class="waveform-icon">
-            <svg width="48" height="28" viewBox="0 0 80 40" fill="none" stroke="#ea580c" stroke-width="3" stroke-linecap="round">
-              <path d="M5 20h10l5-12 10 24 10-18 10 12 10-6h15" />
-            </svg>
+            <PhWaveform :size="32" weight="bold" />
           </div>
           <span class="artwork-text">AUTO ARTWORK &bull; 1200&times;1200</span>
         </div>
@@ -570,11 +569,7 @@ const extractInstrumentalDemucs = async () => {
           <!-- Demucs AI Extraction Option -->
           <div v-else-if="tabInstrumental === 'demucs'" class="demucs-track-action">
             <div v-if="!audioUrlNormal" class="demucs-hint">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
-              </svg>
+              <PhInfo :size="15" weight="regular" />
               <span>Load <strong>Track A (Original song)</strong> first to extract the instrumental using Demucs AI.</span>
             </div>
             <div v-else class="demucs-ready-row">
@@ -1000,6 +995,13 @@ const extractInstrumentalDemucs = async () => {
   align-items: center;
   justify-content: center;
   gap: 8px;
+}
+
+.waveform-icon {
+  color: #ea580c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .artwork-text {

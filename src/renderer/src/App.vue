@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { PhWaveform } from '@phosphor-icons/vue'
 
 // Functional Track States
 const urlNormal = ref('')
@@ -371,9 +372,7 @@ const isolateVocalsDemucs = async () => {
           <!-- Artwork Box -->
           <div class="artwork-card">
             <div class="waveform-icon">
-              <svg width="48" height="28" viewBox="0 0 80 40" fill="none" stroke="#ea580c" stroke-width="3" stroke-linecap="round">
-                <path d="M5 20h10l5-12 10 24 10-18 10 12 10-6h15" />
-              </svg>
+              <PhWaveform :size="32" weight="bold" />
             </div>
             <span class="artwork-text">AUTO ARTWORK &bull; 1200&times;1200</span>
           </div>
@@ -891,6 +890,13 @@ const isolateVocalsDemucs = async () => {
   align-items: center;
   justify-content: center;
   gap: 8px;
+}
+
+.waveform-icon {
+  color: #ea580c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .artwork-text {
