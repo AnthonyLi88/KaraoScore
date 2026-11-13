@@ -4,6 +4,7 @@ import { electronApp, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import ytDlp from 'yt-dlp-exec'
 import ffmpegStatic from 'ffmpeg-static'
+import { registerTestAssetIpc } from './testAssets'
 
 function createWindow(): void {
   // Create the browser window.
@@ -43,6 +44,9 @@ function createWindow(): void {
 app.whenReady().then(() => {
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.karaoscore')
+
+  // Register Test Assets IPC Handlers
+  registerTestAssetIpc()
 
   // Audio Downloader IPC
   ipcMain.handle('download-audio', async (_, url: string, type: string = 'track') => {

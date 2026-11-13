@@ -11,7 +11,10 @@ const api = {
   isolateVocalsDemucs: (trackType) => electron.ipcRenderer.invoke("isolate-vocals-demucs", trackType),
   checkDemucsEnv: () => electron.ipcRenderer.invoke("check-demucs-env"),
   installDemucs: () => electron.ipcRenderer.invoke("install-demucs"),
-  saveRecording: (buffer) => electron.ipcRenderer.invoke("save-recording", buffer)
+  saveRecording: (buffer) => electron.ipcRenderer.invoke("save-recording", buffer),
+  selectTestFolder: () => electron.ipcRenderer.invoke("select-test-folder"),
+  loadTestFolder: (folderPath) => electron.ipcRenderer.invoke("load-test-folder", folderPath),
+  getTestAssetFolders: () => electron.ipcRenderer.invoke("get-test-asset-folders")
 };
 if (process.contextIsolated) {
   try {

@@ -12,7 +12,10 @@ const api = {
   isolateVocalsDemucs: (trackType?: string) => ipcRenderer.invoke('isolate-vocals-demucs', trackType),
   checkDemucsEnv: () => ipcRenderer.invoke('check-demucs-env'),
   installDemucs: () => ipcRenderer.invoke('install-demucs'),
-  saveRecording: (buffer: Uint8Array) => ipcRenderer.invoke('save-recording', buffer)
+  saveRecording: (buffer: Uint8Array) => ipcRenderer.invoke('save-recording', buffer),
+  selectTestFolder: () => ipcRenderer.invoke('select-test-folder'),
+  loadTestFolder: (folderPath?: string) => ipcRenderer.invoke('load-test-folder', folderPath),
+  getTestAssetFolders: () => ipcRenderer.invoke('get-test-asset-folders')
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to
