@@ -9,9 +9,10 @@ const api = {
     return ipcRenderer.invoke('normalize-audio', filePath, type)
   },
   isolateVocalsPhase: () => ipcRenderer.invoke('isolate-vocals-phase'),
-  isolateVocalsDemucs: () => ipcRenderer.invoke('isolate-vocals-demucs'),
+  isolateVocalsDemucs: (trackType?: string) => ipcRenderer.invoke('isolate-vocals-demucs', trackType),
   checkDemucsEnv: () => ipcRenderer.invoke('check-demucs-env'),
-  installDemucs: () => ipcRenderer.invoke('install-demucs')
+  installDemucs: () => ipcRenderer.invoke('install-demucs'),
+  saveRecording: (buffer: Uint8Array) => ipcRenderer.invoke('save-recording', buffer)
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

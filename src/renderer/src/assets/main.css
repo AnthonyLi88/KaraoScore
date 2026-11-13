@@ -1,10 +1,29 @@
 @import './base.css';
 
+:root {
+  --bg-app: #0b0c0e;
+  --bg-sidebar: #0f1013;
+  --bg-card: #131418;
+  --bg-card-inner: #0f1013;
+  --bg-input: #111216;
+  --border-subtle: #20222a;
+  --border-active: #343743;
+  --accent-orange: #ea580c;
+  --accent-orange-hover: #f97316;
+  --accent-badge: #291714;
+  --accent-badge-text: #ea580c;
+  --text-main: #f1f2f5;
+  --text-muted: #797d8b;
+  --text-dim: #4d5160;
+  --status-green: #10b981;
+}
+
 body {
   margin: 0;
-  min-height: 100vh;
-  background: #1a1a2e;
-  color: #e0e0e0;
+  height: 100vh;
+  width: 100vw;
+  background: var(--bg-app);
+  color: var(--text-main);
   font-family:
     Inter,
     -apple-system,
@@ -19,6 +38,7 @@ body {
     'Helvetica Neue',
     sans-serif;
   user-select: none;
+  overflow: hidden;
 }
 
 code {
@@ -38,11 +58,28 @@ code {
 }
 
 #app {
+  width: 100vw;
+  height: 100vh;
   display: flex;
-  align-items: center;
-  justify-content: center;
   flex-direction: column;
-  margin-bottom: 80px;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #20222a;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #343743;
 }
 
 

@@ -37,3 +37,5 @@ demucs_output/
 *.njsproj
 *.sln
 *.sw?
+
+nul

@@ -41,11 +41,11 @@ electron.app.whenReady().then(() => {
         audioFormat: "mp3",
         output: outputPath,
         ffmpegLocation: ffmpegStatic || void 0,
-        noCheckCertificates: true,
+        noCheckCertificate: true,
         noWarnings: true,
         preferFreeFormats: true,
         addHeader: ["referer:youtube.com", "user-agent:Mozilla/5.0"],
-        forceOverwrites: true
+        noOverwrites: false
       });
       console.log("Download complete! Reading file to base64...");
       const fs = require("fs");
@@ -78,6 +78,31 @@ electron.app.whenReady().then(() => {
       return { success: true, audioUrl: dataUri };
     } catch (error) {
       console.error("Normalize error:", error);
+      return { success: false, error: error.message };
+    }
+  });
+  electron.ipcMain.handle("save-recording", async (_, buffer) => {
+    try {
+      const fs = require("fs");
+      const rawPath = path.join(electron.app.getPath("userData"), "track_recording_raw.webm");
+      const outputPath = path.join(electron.app.getPath("userData"), "track_recording.mp3");
+      console.log(`Saving ${buffer.length} bytes of user recording...`);
+      await fs.promises.writeFile(rawPath, Buffer.from(buffer));
+      const { spawn } = require("child_process");
+      await new Promise((resolve, reject) => {
+        const proc = spawn(ffmpegStatic, ["-y", "-i", rawPath, outputPath]);
+        proc.on("close", (code) => {
+          if (code === 0) resolve();
+          else reject(new Error(`ffmpeg conversion failed with code ${code}`));
+        });
+      });
+      console.log("Recording converted to mp3! Reading to base64...");
+      const convertedBuffer = await fs.promises.readFile(outputPath);
+      const base64Audio = convertedBuffer.toString("base64");
+      const dataUri = `data:audio/mp3;base64,${base64Audio}`;
+      return { success: true, audioUrl: dataUri };
+    } catch (error) {
+      console.error("Save recording error:", error);
       return { success: false, error: error.message };
     }
   });
@@ -168,17 +193,17 @@ electron.app.whenReady().then(() => {
       return { success: false, error: e.message };
     }
   });
-  electron.ipcMain.handle("isolate-vocals-demucs", async () => {
+  electron.ipcMain.handle("isolate-vocals-demucs", async (_, trackType = "normal") => {
     try {
-      const normalPath = path.join(electron.app.getPath("userData"), `track_normal.mp3`);
+      const inputPath = path.join(electron.app.getPath("userData"), `track_${trackType}.mp3`);
       const outputDir = path.join(electron.app.getPath("userData"), "demucs_output");
       const isWindows = process.platform === "win32";
       const venvDir = path.join(electron.app.getPath("userData"), "ai-env");
       const demucsCmd = path.join(venvDir, isWindows ? "Scripts" : "bin", isWindows ? "demucs.exe" : "demucs");
-      console.log(`Isolating vocals via Demucs AI...`);
+      console.log(`Isolating vocals via Demucs AI from track_${trackType}.mp3...`);
       const { spawn } = require("child_process");
       await new Promise((resolve, reject) => {
-        const proc = spawn(demucsCmd, ["--two-stems", "vocals", "-n", "htdemucs", "-o", outputDir, normalPath]);
+        const proc = spawn(demucsCmd, ["--two-stems", "vocals", "-n", "htdemucs", "-o", outputDir, inputPath]);
         let errorOutput = "";
         proc.stderr.on("data", (data) => {
           errorOutput += data.toString();
@@ -190,11 +215,23 @@ electron.app.whenReady().then(() => {
       });
       console.log("AI Isolation complete! Reading file to base64...");
       const fs = require("fs");
-      const vocalsPath = path.join(outputDir, "htdemucs", "track_normal", "vocals.wav");
+      const trackStem = `track_${trackType}`;
+      const vocalsPath = path.join(outputDir, "htdemucs", trackStem, "vocals.wav");
+      const noVocalsPath = path.join(outputDir, "htdemucs", trackStem, "no_vocals.wav");
       const buffer = await fs.promises.readFile(vocalsPath);
       const base64Audio = buffer.toString("base64");
       const dataUri = `data:audio/wav;base64,${base64Audio}`;
-      return { success: true, audioUrl: dataUri };
+      let instrumentalUri = void 0;
+      if (fs.existsSync(noVocalsPath)) {
+        const instrumentalMp3 = path.join(electron.app.getPath("userData"), "track_instrumental.mp3");
+        await new Promise((resolveConvert) => {
+          const cvt = spawn(ffmpegStatic, ["-y", "-i", noVocalsPath, instrumentalMp3]);
+          cvt.on("close", () => resolveConvert());
+        });
+        const noVocalsBuffer = await fs.promises.readFile(noVocalsPath);
+        instrumentalUri = `data:audio/wav;base64,${noVocalsBuffer.toString("base64")}`;
+      }
+      return { success: true, audioUrl: dataUri, instrumentalUrl: instrumentalUri };
     } catch (error) {
       console.error("Demucs error:", error);
       return { success: false, error: error.message };
