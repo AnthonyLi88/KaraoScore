@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { calculateVocalScore, type ScoreResult } from '../utils/scoring'
 
 // Synchronized song metadata (2-way bound with App shell)
@@ -76,6 +76,115 @@ const missingRequirements = computed(() => {
   if (!audioUrlVocals.value) missing.push('Isolated vocals')
   return missing
 })
+
+// Singer input active if guide tracks exist OR if user vocal audio is already loaded
+const isSingerInputLocked = computed(() => {
+  return !canRecord.value && !audioUrlRecording.value
+})
+
+// Test Asset Folder States
+const availableTestFolders = ref<Array<{ name: string; path: string }>>([])
+const selectedTestFolderPath = ref('')
+const isLoadingTestFolder = ref(false)
+const testFolderMessage = ref('')
+const testFolderMessageType = ref<'success' | 'warning' | 'error'>('success')
+
+const refreshTestFolders = async () => {
+  try {
+    if (window.api?.getTestAssetFolders) {
+      availableTestFolders.value = await window.api.getTestAssetFolders()
+    }
+  } catch (err) {
+    console.warn('Could not load test asset folders:', err)
+  }
+}
+
+onMounted(() => {
+  refreshTestFolders()
+})
+
+const onTestFolderSelect = async () => {
+  if (!selectedTestFolderPath.value) return
+  await loadTestFolder(selectedTestFolderPath.value)
+}
+
+const handleBrowseTestFolder = async () => {
+  await loadTestFolder()
+}
+
+const loadTestFolder = async (folderPath?: string) => {
+  isLoadingTestFolder.value = true
+  testFolderMessage.value = ''
+  try {
+    const result = await window.api.loadTestFolder(folderPath)
+    if (result.canceled) return
+
+    if (!result.success) {
+      testFolderMessageType.value = 'error'
+      testFolderMessage.value = result.error || 'Failed to load test asset folder.'
+      return
+    }
+
+    let loadedCount = 0
+
+    // 1. Original Song (Track A)
+    if (result.trackNormal) {
+      audioUrlNormal.value = result.trackNormal.audioUrl
+      normalFileName.value = result.trackNormal.fileName
+      statusNormal.value = `Ready (${result.trackNormal.fileName})`
+      tabNormal.value = 'file'
+      loadedCount++
+    }
+
+    // 2. Instrumental (Track B)
+    if (result.trackInstrumental) {
+      audioUrlInstrumental.value = result.trackInstrumental.audioUrl
+      instrumentalFileName.value = result.trackInstrumental.fileName
+      statusInstrumental.value = `Ready (${result.trackInstrumental.fileName})`
+      tabInstrumental.value = 'file'
+      loadedCount++
+    }
+
+    // 3. User Vocals (Track C)
+    if (result.trackRecording) {
+      audioUrlRecording.value = result.trackRecording.audioUrl
+      recordingFileName.value = result.trackRecording.fileName
+      statusRecording.value = `Ready (${result.trackRecording.fileName})`
+      tabSinger.value = 'file'
+      loadedCount++
+    }
+
+    // 4. Isolated Vocals (if detected in test assets)
+    if (result.trackVocals) {
+      audioUrlVocals.value = result.trackVocals.audioUrl
+      statusVocals.value = `Ready (${result.trackVocals.fileName})`
+    }
+
+    // Clear old scoring results
+    scoreResult.value = null
+    scoreError.value = ''
+
+    // Update folder dropdown selection and list
+    if (result.folderPath) {
+      selectedTestFolderPath.value = result.folderPath
+    }
+    await refreshTestFolders()
+
+    if (result.missing && result.missing.length > 0) {
+      testFolderMessageType.value = 'warning'
+      testFolderMessage.value = `Loaded ${loadedCount} track(s) from "${result.folderName}". Missing: ${result.missing.join(', ')}.`
+    } else {
+      testFolderMessageType.value = 'success'
+      testFolderMessage.value = `Loaded original track, instrumental, and user vocals from "${result.folderName}"!`
+    }
+  } catch (err: any) {
+    console.error('Error loading test asset folder:', err)
+    testFolderMessageType.value = 'error'
+    testFolderMessage.value = err.message || 'Error loading test asset folder.'
+  } finally {
+    isLoadingTestFolder.value = false
+  }
+}
 
 let mediaRecorder: MediaRecorder | null = null
 let recordingTimer: ReturnType<typeof setInterval> | null = null
@@ -450,6 +559,45 @@ const extractInstrumentalDemucs = async () => {
 
       <!-- Right Column: Audio Sources & Vocal Isolation -->
       <section class="sources-column">
+        <!-- Test Assets Quick-Loader -->
+        <div class="panel test-assets-panel">
+          <div class="test-assets-header">
+            <div class="test-title-row">
+              <span class="test-badge">🧪 TEST ASSETS</span>
+              <span class="test-title">Load Test Folder</span>
+            </div>
+            <p class="test-desc">Select a test folder to auto-populate the original track, instrumental, and user vocals.</p>
+          </div>
+
+          <div class="test-assets-controls">
+            <select
+              v-model="selectedTestFolderPath"
+              class="test-select"
+              :disabled="isLoadingTestFolder"
+              @change="onTestFolderSelect"
+            >
+              <option value="" disabled>Select test folder...</option>
+              <option v-for="folder in availableTestFolders" :key="folder.path" :value="folder.path">
+                📁 {{ folder.name }}
+              </option>
+            </select>
+
+            <button
+              class="btn btn-test-browse"
+              :disabled="isLoadingTestFolder"
+              @click="handleBrowseTestFolder"
+            >
+              <span>{{ isLoadingTestFolder ? 'Loading...' : '📁 Browse Folder...' }}</span>
+            </button>
+          </div>
+
+          <!-- Status or feedback message -->
+          <div v-if="testFolderMessage" class="test-message" :class="'msg-' + testFolderMessageType">
+            <span class="msg-icon">{{ testFolderMessageType === 'success' ? '✓' : testFolderMessageType === 'warning' ? '⚠' : '✕' }}</span>
+            <span>{{ testFolderMessage }}</span>
+          </div>
+        </div>
+
         <!-- Track A: Original Song / Normal Track -->
         <div class="panel track-panel">
           <div class="track-header">
@@ -643,12 +791,12 @@ const extractInstrumentalDemucs = async () => {
         </div>
 
         <!-- Track C: Singer's Vocal Input -->
-        <div class="panel track-panel" :class="{ 'track-locked': !canRecord }">
+        <div class="panel track-panel" :class="{ 'track-locked': isSingerInputLocked }">
           <div class="track-header">
-            <span class="tag-letter recording-badge" :class="{ 'is-live': isRecording, 'is-locked': !canRecord }">C</span>
+            <span class="tag-letter recording-badge" :class="{ 'is-live': isRecording, 'is-locked': isSingerInputLocked }">C</span>
             <div class="track-info">
               <h3>Singer's vocal input</h3>
-              <p v-if="canRecord">Record through your mic or upload an audio file to test singing and scoring.</p>
+              <p v-if="!isSingerInputLocked">Record through your mic or upload an audio file to test singing and scoring.</p>
               <p v-else class="lock-msg">
                 Locked &bull; Requires {{ missingRequirements.join(', ') }}
               </p>
@@ -671,7 +819,7 @@ const extractInstrumentalDemucs = async () => {
             <button
               class="tab"
               :class="{ active: tabSinger === 'file' }"
-              :disabled="!canRecord"
+              :disabled="isSingerInputLocked"
               @click="tabSinger = 'file'"
             >
               Local file
@@ -702,7 +850,7 @@ const extractInstrumentalDemucs = async () => {
               type="file"
               accept="audio/*"
               class="file-input"
-              :disabled="!canRecord"
+              :disabled="isSingerInputLocked"
               @change="(e) => onFileSelected(e, 'recording')"
             />
           </div>
@@ -1057,6 +1205,142 @@ const extractInstrumentalDemucs = async () => {
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+/* Test Assets Quick-Loader Panel */
+.test-assets-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: linear-gradient(180deg, #181922 0%, #14151b 100%);
+  border: 1px solid #2b2e3c;
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+  padding: 16px 18px;
+}
+
+.test-assets-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #ea580c, #f97316, #fb923c);
+}
+
+.test-assets-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.test-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.test-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  background: #2b1713;
+  color: #ea580c;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(234, 88, 12, 0.3);
+}
+
+.test-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.test-desc {
+  font-size: 12px;
+  color: #8b92a0;
+  margin: 0;
+}
+
+.test-assets-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.test-select {
+  flex: 1;
+  background: #0f1014;
+  border: 1px solid #282b39;
+  border-radius: 6px;
+  color: #e5e7eb;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.test-select:focus {
+  border-color: #ea580c;
+}
+
+.btn-test-browse {
+  background: #1e202a;
+  border: 1px solid #2d3140;
+  color: #e5e7eb;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.btn-test-browse:hover:not(:disabled) {
+  background: #282b39;
+  border-color: #3f4459;
+  color: #fff;
+}
+
+.btn-test-browse:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.test-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  padding: 7px 12px;
+  border-radius: 5px;
+  line-height: 1.4;
+}
+
+.msg-success {
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  color: #4ade80;
+}
+
+.msg-warning {
+  background: rgba(234, 179, 8, 0.12);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  color: #fde047;
+}
+
+.msg-error {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #f87171;
+}
+
+.msg-icon {
+  font-weight: 700;
+  font-size: 12px;
 }
 
 .track-panel {
