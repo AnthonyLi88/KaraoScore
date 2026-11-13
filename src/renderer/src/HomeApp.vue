@@ -1,5 +1,12 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import {
+  PhHouse,
+  PhUploadSimple,
+  PhBooks,
+  PhFaders,
+  PhKeyboard
+} from '@phosphor-icons/vue'
 import HomeView from './views/HomeView.vue'
 import ImportView from './views/ImportView.vue'
 
@@ -38,9 +45,7 @@ const isRecording = ref(false)
           :class="{ active: currentNav === 'home' }"
           @click="currentNav = 'home'"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z" />
-          </svg>
+          <PhHouse :size="16" weight="regular" />
           <span>Home</span>
         </button>
         <button
@@ -48,11 +53,7 @@ const isRecording = ref(false)
           :class="{ active: currentNav === 'import' }"
           @click="currentNav = 'import'"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-            <polyline points="7 10 12 15 17 10" />
-            <line x1="12" y1="15" x2="12" y2="3" />
-          </svg>
+          <PhUploadSimple :size="16" weight="regular" />
           <span>Import</span>
         </button>
         <button
@@ -60,10 +61,7 @@ const isRecording = ref(false)
           :class="{ active: currentNav === 'library' }"
           @click="currentNav = 'library'"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-          </svg>
+          <PhBooks :size="16" weight="regular" />
           <span>Library</span>
         </button>
       </nav>
@@ -83,20 +81,11 @@ const isRecording = ref(false)
       <!-- Sidebar Footer -->
       <div class="sidebar-footer">
         <button class="footer-btn">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" />
-            <line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" />
-            <line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" />
-            <line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" />
-            <line x1="17" y1="16" x2="23" y2="16" />
-          </svg>
+          <PhFaders :size="14" weight="regular" />
           <span>Audio settings</span>
         </button>
         <button class="footer-btn">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="2" y="4" width="20" height="16" rx="2" />
-            <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10" />
-          </svg>
+          <PhKeyboard :size="14" weight="regular" />
           <span>Shortcuts</span>
         </button>
         <div class="device-pill">
@@ -140,10 +129,7 @@ const isRecording = ref(false)
         </header>
         <div class="panel placeholder-panel">
           <div class="placeholder-icon">
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="2">
-              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-            </svg>
+            <PhBooks :size="36" weight="regular" />
           </div>
           <h3>Song Library</h3>
           <p>Your library contains your imported tracks. Import a new song or return to Home to start singing.</p>
@@ -356,6 +342,7 @@ const isRecording = ref(false)
   align-items: center;
   justify-content: center;
   margin-bottom: 4px;
+  color: #ea580c;
 }
 
 .placeholder-panel h3 {
