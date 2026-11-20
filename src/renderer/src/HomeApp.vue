@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import {
   PhHouse,
   PhUploadSimple,
@@ -9,6 +9,7 @@ import {
 } from '@phosphor-icons/vue'
 import HomeView from './views/HomeView.vue'
 import ImportView from './views/ImportView.vue'
+import SettingsModal, { type SettingsState } from './components/SettingsModal.vue'
 
 // Navigation state within HomeApp
 const currentNav = ref<'home' | 'import' | 'library'>('home')
@@ -23,6 +24,98 @@ const audioUrlInstrumental = ref('')
 const audioUrlVocals = ref('')
 const audioUrlRecording = ref('')
 const isRecording = ref(false)
+
+// Settings Modal State
+const isSettingsOpen = ref(false)
+const settingsTab = ref<'audio' | 'shortcuts' | 'latency' | 'general'>('audio')
+const selectedDeviceName = ref('Scarlett Solo')
+const selectedSampleRate = ref('48 kHz')
+
+function getDeviceShortName(fullName: string): string {
+  if (fullName.includes('Scarlett Solo')) return 'Scarlett Solo'
+  if (fullName.includes('Microphone Array')) return 'Microphone Array'
+  if (fullName.includes('Blue Yeti')) return 'Blue Yeti'
+  if (fullName.includes('Default System')) return 'Default System Mic'
+  return fullName.replace(/\s*(USB|\(.*?\)).*/gi, '').trim() || fullName
+}
+
+function getSampleRateShortName(rateStr: string): string {
+  if (rateStr.includes('48,000')) return '48 kHz'
+  if (rateStr.includes('44,100')) return '44.1 kHz'
+  if (rateStr.includes('96,000')) return '96 kHz'
+  return '48 kHz'
+}
+
+function openSettings(tab: 'audio' | 'shortcuts' | 'latency' | 'general'): void {
+  settingsTab.value = tab
+  isSettingsOpen.value = true
+}
+
+function onSettingsSaved(newSettings: SettingsState): void {
+  if (newSettings.audioInput) {
+    selectedDeviceName.value = getDeviceShortName(newSettings.audioInput)
+  }
+  if (newSettings.sampleRate) {
+    selectedSampleRate.value = getSampleRateShortName(newSettings.sampleRate)
+  }
+}
+
+function handleGlobalKeydown(e: KeyboardEvent): void {
+  if (e.key === 'Escape') {
+    if (isSettingsOpen.value) {
+      isSettingsOpen.value = false
+      e.preventDefault()
+    }
+    return
+  }
+
+  const target = e.target as HTMLElement | null
+  const isInput =
+    target &&
+    (target.tagName === 'INPUT' ||
+      target.tagName === 'TEXTAREA' ||
+      target.tagName === 'SELECT' ||
+      target.isContentEditable)
+
+  if (isInput) return
+
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === ',') {
+      e.preventDefault()
+      openSettings('audio')
+    } else if (e.key === '/') {
+      e.preventDefault()
+      openSettings('shortcuts')
+    } else if (e.key === '1') {
+      e.preventDefault()
+      currentNav.value = 'home'
+    } else if (e.key === '2') {
+      e.preventDefault()
+      currentNav.value = 'import'
+    } else if (e.key === '3') {
+      e.preventDefault()
+      currentNav.value = 'library'
+    }
+  }
+}
+
+onMounted(() => {
+  try {
+    const raw = localStorage.getItem('karaoscore_settings')
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      if (parsed.audioInput) selectedDeviceName.value = getDeviceShortName(parsed.audioInput)
+      if (parsed.sampleRate) selectedSampleRate.value = getSampleRateShortName(parsed.sampleRate)
+    }
+  } catch {
+    // ignore
+  }
+  window.addEventListener('keydown', handleGlobalKeydown)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleGlobalKeydown)
+})
 </script>
 
 <template>
@@ -80,17 +173,17 @@ const isRecording = ref(false)
 
       <!-- Sidebar Footer -->
       <div class="sidebar-footer">
-        <button class="footer-btn">
+        <button class="footer-btn" @click="openSettings('audio')">
           <PhFaders :size="14" weight="regular" />
           <span>Audio settings</span>
         </button>
-        <button class="footer-btn">
+        <button class="footer-btn" @click="openSettings('shortcuts')">
           <PhKeyboard :size="14" weight="regular" />
           <span>Shortcuts</span>
         </button>
         <div class="device-pill">
           <span class="pulse-dot"></span>
-          <span>Scarlett Solo &bull; 48 kHz</span>
+          <span>{{ selectedDeviceName }} • {{ selectedSampleRate }}</span>
         </div>
       </div>
     </aside>
@@ -137,6 +230,13 @@ const isRecording = ref(false)
         </div>
       </div>
     </main>
+
+    <!-- Settings & Shortcuts Modal -->
+    <SettingsModal
+      v-model:is-open="isSettingsOpen"
+      :initial-tab="settingsTab"
+      @save="onSettingsSaved"
+    />
   </div>
 </template>
 
